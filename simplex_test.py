@@ -31,6 +31,11 @@ def check_efficient(B_inv,CN,CB,b,N):
     if(np.any(any_row_negative==True)):
         print("Any row negative")
         return True
+    
+    row_sums = CN_eff.sum(axis=1)
+    if(np.all(row_sums<0)):
+        return True
+
 
 
 
@@ -182,6 +187,13 @@ A = np.hstack((A, np.eye(A.shape[0])))
 # print(A)
 b = np.array([12,12,12])
 C = np.array([[6,4,5],[0,0,1]])
+C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
+
+A = np.array([[1,1,0],[0,1,0],[1,-1,1]])
+A = np.hstack((A, np.eye(A.shape[0])))
+# print(A)
+b = np.array([1,2,4])
+C = np.array([[-1,-2,0],[-1,0,2],[1,0,-1]])
 C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 
 simplex(A,b,C)
