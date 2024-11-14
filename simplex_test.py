@@ -13,13 +13,14 @@ import numpy as np
 def check_efficient(B_inv,CN,CB,b,N):
     
     CN_eff = CN-CB@B_inv@N
-    N_eff = B_inv@N
-    Cx = CB@B_inv@b
+    # N_eff = B_inv@N
+    # Cx = CB@B_inv@b
 
-    pos_nonzero = np.any(CN_eff < 0 | np.all(CN_eff==0), axis=0) #Check if any column is all negative or if all zero (check correctness)
+    pos_nonzero = np.any(np.logical_or(CN_eff < 0, np.all(CN_eff == 0, axis=0)), axis=0) #Check if any column is all negative or if all zero (check correctness)
     # print(pos_nonzero)
     # print(CN_eff)
     if(np.any(pos_nonzero==False)):
+        print("pos_nonzero")
         return False
 
     ideal_sol = np.all(CN_eff<=0)
@@ -30,10 +31,12 @@ def check_efficient(B_inv,CN,CB,b,N):
     any_row_negative = np.all(CN_eff < 0, axis=1)
     if(np.any(any_row_negative==True)):
         print("Any row negative")
+        # print(CN_eff)
         return True
     
     row_sums = CN_eff.sum(axis=1)
     if(np.all(row_sums<0)):
+        print("Row sums")
         return True
 
 
@@ -41,7 +44,7 @@ def check_efficient(B_inv,CN,CB,b,N):
 
     return False
 
-def move_adjacent(non_basic_ind, basic_ind, B, B_inv,N):
+def find_all_eff_sol(non_basic_ind, basic_ind, B, B_inv,N, used_indicies):
     # index=9999 #remove
     As = np.copy(N)
     # print(B_inv)
@@ -50,32 +53,51 @@ def move_adjacent(non_basic_ind, basic_ind, B, B_inv,N):
     b_eff = B_inv@b
     # print(b_eff)
 
-    # As[2,0]=-1
-    for i in range(len(non_basic_ind)):
-        neg_col = np.all(As[:, i] < 0) #Check if column is negative (Not correct)
-        if(neg_col):
-            pivot_ind = non_basic_ind[i]
-            #Here add how to switch
-            break
-    #H
+
+    positive_in_columns = np.any(As > 0, axis=0)
+    # print(positive_in_columns)
+
+    As = As[:, positive_in_columns]
 
     # print(As)
-    if(neg_col==False):
-        min_value = np.inf
-        index_in, index_out = np.inf, np.inf
-        for i in range(len(b_eff)):
-            for s in range(len(As[0,:])):
-                if As[i,s]>=0:
-                    value=b_eff[i]/As[i,s]
-                else:
-                    value = np.inf
-                # print(value)
-                
-                if(value<min_value):
-                    print(As[i,s])
-                    min_value = value
-                    index_out = i
-                    index_in = s
+
+    # As[2,0]=-1
+    # for i in range(len(non_basic_ind)):
+    #     neg_col = np.any(As[:, i] < 0) #Check if column is negative (Not correct)
+    #     if(neg_col):
+    #         pivot_ind = non_basic_ind[i]
+    #         #Here add how to switch
+    #         break
+    # H
+
+    # print(As)
+    # if(neg_col==False):
+    min_value = np.inf
+    index_in, index_out = np.inf, np.inf
+    # print([used for used in used_indicies])
+    # print(any(np.array_equal([3,4,2], used) for used in used_indicies))
+    for i in range(len(b_eff)):
+        for s in range(len(As[0,:])):
+            temp_basic_ind = np.array(basic_ind.copy())
+            temp_non_basic_ind = non_basic_ind.copy()
+            temp_basic_ind[i] = non_basic_ind[s]
+            temp_non_basic_ind[s] = basic_ind[i]
+            # print(temp_basic_ind)
+            if any(np.array_equal(temp_basic_ind, used) for used in used_indicies):
+                # print(temp_basic_ind, used_indicies)
+                continue
+            if As[i,s]>=0:
+                value=b_eff[i]/As[i,s]
+            else:
+                value = np.inf
+            # print(value)
+            
+            if(value<min_value):
+                # print(As[i,s])
+                print(value)
+                min_value = value
+                index_out = i
+                index_in = s
 
 
     
@@ -89,7 +111,99 @@ def move_adjacent(non_basic_ind, basic_ind, B, B_inv,N):
     tmp = non_basic_ind[index_in]
     non_basic_ind[index_in] = basic_ind[index_out]
     basic_ind[index_out] = tmp
-    print(min_value,(index_in,index_out))
+
+
+    used_indicies.append(basic_ind.copy())
+    print(used_indicies)
+    # print(min_value,(index_in,index_out))
+    print(basic_ind,non_basic_ind)
+
+
+    
+
+    # print(As)
+    # print(neg_col)
+    # indices = feasible.nonzero()
+    # print(indices)
+    # if(A)
+    # bi=B[:,basic_ind]
+    
+    # ts=np.min()
+    # print(As)
+    return basic_ind,non_basic_ind
+
+def find_first_eff_sol(non_basic_ind, basic_ind, B, B_inv,N, used_indicies):
+    # index=9999 #remove
+    As = np.copy(N)
+    # print(B_inv)
+    # print(N)x
+    As = B_inv@N
+    b_eff = B_inv@b
+    # print(b_eff)
+
+
+    positive_in_columns = np.any(As > 0, axis=0)
+    # print(positive_in_columns)
+
+    As = As[:, positive_in_columns]
+
+    # print(As)
+
+    # As[2,0]=-1
+    # for i in range(len(non_basic_ind)):
+    #     neg_col = np.any(As[:, i] < 0) #Check if column is negative (Not correct)
+    #     if(neg_col):
+    #         pivot_ind = non_basic_ind[i]
+    #         #Here add how to switch
+    #         break
+    # H
+
+    # print(As)
+    # if(neg_col==False):
+    min_value = np.inf
+    index_in, index_out = np.inf, np.inf
+    # print([used for used in used_indicies])
+    # print(any(np.array_equal([3,4,2], used) for used in used_indicies))
+    for i in range(len(b_eff)):
+        for s in range(len(As[0,:])):
+            temp_basic_ind = np.array(basic_ind.copy())
+            temp_non_basic_ind = non_basic_ind.copy()
+            temp_basic_ind[i] = non_basic_ind[s]
+            temp_non_basic_ind[s] = basic_ind[i]
+            # print(temp_basic_ind)
+            if any(np.array_equal(temp_basic_ind, used) for used in used_indicies):
+                # print(temp_basic_ind, used_indicies)
+                continue
+            if As[i,s]>=0:
+                value=b_eff[i]/As[i,s]
+            else:
+                value = np.inf
+            # print(value)
+            
+            if(value<min_value):
+                # print(As[i,s])
+                print(value)
+                min_value = value
+                index_out = i
+                index_in = s
+
+
+    
+    if index_in==np.inf or index_out==np.inf:
+        raise ValueError 
+       
+    # tmp = non_basic_ind[s]
+    # non_basic_ind[s] = basic_ind[i]
+    # basic_ind[i] = tmp
+
+    tmp = non_basic_ind[index_in]
+    non_basic_ind[index_in] = basic_ind[index_out]
+    basic_ind[index_out] = tmp
+
+
+    used_indicies.append(basic_ind.copy())
+    print(used_indicies)
+    # print(min_value,(index_in,index_out))
     print(basic_ind,non_basic_ind)
 
 
@@ -130,6 +244,9 @@ def simplex(A,b,C):
     N = A[:,non_basic_ind]
     CN = C[:,non_basic_ind]
     CB = C[:,basic_ind]
+
+    used_indicies = [basic_ind.copy()]
+    print(basic_ind)
     # print(B)
     
 
@@ -137,7 +254,7 @@ def simplex(A,b,C):
 
     # pos_nonzero = np.any(test_arr <= 0 | test_arr[i]==0, axis=0)
     # print(pos_nonzero)
-    for i in range(10):
+    for i in range(100):
 
         B_inv=np.linalg.inv(B)
 
@@ -145,17 +262,19 @@ def simplex(A,b,C):
         if(eff):
             print("EFFICIENT")
             print(basic_ind,non_basic_ind)
-            return
+            break
         # print(eff)
         # print(non_basic_ind)
-        basic_ind,non_basic_ind=move_adjacent(non_basic_ind, basic_ind, B, B_inv, N)
+        basic_ind,non_basic_ind=find_first_eff_sol(non_basic_ind, basic_ind, B, B_inv, N, used_indicies)
 
         B = A[:,basic_ind]
         N = A[:,non_basic_ind]
         CN = C[:,non_basic_ind]
         CB = C[:,basic_ind]
 
-    Cx = CB@B_inv@b
+    # Cx = CB@B_inv@b
+    basic_ind,non_basic_ind=find_all_eff_sol(non_basic_ind, basic_ind, B, B_inv, N, used_indicies)
+    eff = check_efficient(B_inv,CN,CB,b,N)
 
     # print(ind)
 
@@ -189,11 +308,11 @@ b = np.array([12,12,12])
 C = np.array([[6,4,5],[0,0,1]])
 C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 
-A = np.array([[1,1,0],[0,1,0],[1,-1,1]])
-A = np.hstack((A, np.eye(A.shape[0])))
-# print(A)
-b = np.array([1,2,4])
-C = np.array([[-1,-2,0],[-1,0,2],[1,0,-1]])
-C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
+# A = np.array([[1,1,0],[0,1,0],[1,-1,1]])
+# A = np.hstack((A, np.eye(A.shape[0])))
+# # print(A)
+# b = np.array([1,2,4])
+# C = np.array([[-1,-2,0],[-1,0,2],[1,0,-1]])
+# C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 
 simplex(A,b,C)
