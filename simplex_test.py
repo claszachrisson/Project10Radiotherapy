@@ -10,9 +10,10 @@ import numpy as np
 # # Calculate the minimum ratio
 # t_s = np.min(positive_ratios)
 
-def check_efficient(B_inv,CN,CB,b,N):
+def check_efficient(B_inv,CN,CB,N):
     
     CN_eff = CN-CB@B_inv@N
+    # print(np.shape(CN_eff))
     # N_eff = B_inv@N
     # Cx = CB@B_inv@b
 
@@ -44,237 +45,213 @@ def check_efficient(B_inv,CN,CB,b,N):
 
     return False
 
-def find_all_eff_sol(non_basic_ind, basic_ind, B, B_inv,N, used_indicies):
-    # index=9999 #remove
-    As = np.copy(N)
-    # print(B_inv)
-    # print(N)x
+def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N):
+    CN_eff = CN-CB@B_inv@N
+
+    cols=[(np.any(CN_eff[:, i] > 0) and np.any(CN_eff[:, i] < 0)) for i in range(CN_eff.shape[1])]
+
     As = B_inv@N
     b_eff = B_inv@b
-    # print(b_eff)
 
+    As=np.array(As[:,cols])
+    
 
-    positive_in_columns = np.any(As > 0, axis=0)
-    # print(positive_in_columns)
-
-    As = As[:, positive_in_columns]
-
-    # print(As)
-
-    # As[2,0]=-1
-    # for i in range(len(non_basic_ind)):
-    #     neg_col = np.any(As[:, i] < 0) #Check if column is negative (Not correct)
-    #     if(neg_col):
-    #         pivot_ind = non_basic_ind[i]
-    #         #Here add how to switch
-    #         break
-    # H
-
-    # print(As)
-    # if(neg_col==False):
-    min_value = np.inf
-    index_in, index_out = np.inf, np.inf
-    # print([used for used in used_indicies])
-    # print(any(np.array_equal([3,4,2], used) for used in used_indicies))
+    min_values = np.full(len(As[0,:]),np.inf)
+    index_ins, index_outs = np.full(len(As[0,:]),np.inf), np.full(len(As[0,:]),np.inf)
     for i in range(len(b_eff)):
         for s in range(len(As[0,:])):
-            temp_basic_ind = np.array(basic_ind.copy())
-            temp_non_basic_ind = non_basic_ind.copy()
-            temp_basic_ind[i] = non_basic_ind[s]
-            temp_non_basic_ind[s] = basic_ind[i]
             # print(temp_basic_ind)
-            if any(np.array_equal(temp_basic_ind, used) for used in used_indicies):
                 # print(temp_basic_ind, used_indicies)
-                continue
             if As[i,s]>=0:
                 value=b_eff[i]/As[i,s]
             else:
                 value = np.inf
             # print(value)
             
-            if(value<min_value):
+            if(value<min_values[s]):
                 # print(As[i,s])
                 print(value)
-                min_value = value
-                index_out = i
-                index_in = s
+                min_values[s] = value
+                index_outs[s] = i
+                index_ins[s] = s
 
+    tC = np.zeros((len(CN_eff[:,0]),len(min_values)))
+    for i in range(len(min_values)):
+        tC[:,i]=min_values[i]*CN_eff[:,i]
 
-    
-    if index_in==np.inf or index_out==np.inf:
-        raise ValueError 
-       
-    # tmp = non_basic_ind[s]
-    # non_basic_ind[s] = basic_ind[i]
-    # basic_ind[i] = tmp
+    # np.all(tC[:,i])
 
-    tmp = non_basic_ind[index_in]
-    non_basic_ind[index_in] = basic_ind[index_out]
-    basic_ind[index_out] = tmp
+    print(index_ins, index_outs, min_values)
+    # tmp = non_basic_ind[index_in]
+    # non_basic_ind[index_in] = basic_ind[index_out]
+    # basic_ind[index_out] = tmp
 
-
-    used_indicies.append(basic_ind.copy())
-    print(used_indicies)
-    # print(min_value,(index_in,index_out))
-    print(basic_ind,non_basic_ind)
-
-
-    
-
-    # print(As)
-    # print(neg_col)
-    # indices = feasible.nonzero()
-    # print(indices)
-    # if(A)
-    # bi=B[:,basic_ind]
-    
-    # ts=np.min()
-    # print(As)
-    return basic_ind,non_basic_ind
-
-def find_first_eff_sol(non_basic_ind, basic_ind, B, B_inv,N, used_indicies):
-    # index=9999 #remove
-    As = np.copy(N)
-    # print(B_inv)
-    # print(N)x
-    As = B_inv@N
-    b_eff = B_inv@b
-    # print(b_eff)
-
-
-    positive_in_columns = np.any(As > 0, axis=0)
-    # print(positive_in_columns)
-
-    As = As[:, positive_in_columns]
-
-    # print(As)
-
-    # As[2,0]=-1
-    # for i in range(len(non_basic_ind)):
-    #     neg_col = np.any(As[:, i] < 0) #Check if column is negative (Not correct)
-    #     if(neg_col):
-    #         pivot_ind = non_basic_ind[i]
-    #         #Here add how to switch
-    #         break
-    # H
-
-    # print(As)
-    # if(neg_col==False):
-    min_value = np.inf
-    index_in, index_out = np.inf, np.inf
-    # print([used for used in used_indicies])
-    # print(any(np.array_equal([3,4,2], used) for used in used_indicies))
-    for i in range(len(b_eff)):
-        for s in range(len(As[0,:])):
-            temp_basic_ind = np.array(basic_ind.copy())
-            temp_non_basic_ind = non_basic_ind.copy()
-            temp_basic_ind[i] = non_basic_ind[s]
-            temp_non_basic_ind[s] = basic_ind[i]
-            # print(temp_basic_ind)
-            if any(np.array_equal(temp_basic_ind, used) for used in used_indicies):
-                # print(temp_basic_ind, used_indicies)
-                continue
-            if As[i,s]>=0:
-                value=b_eff[i]/As[i,s]
-            else:
-                value = np.inf
-            # print(value)
-            
-            if(value<min_value):
-                # print(As[i,s])
-                print(value)
-                min_value = value
-                index_out = i
-                index_in = s
-
-
-    
-    if index_in==np.inf or index_out==np.inf:
-        raise ValueError 
-       
-    # tmp = non_basic_ind[s]
-    # non_basic_ind[s] = basic_ind[i]
-    # basic_ind[i] = tmp
-
-    tmp = non_basic_ind[index_in]
-    non_basic_ind[index_in] = basic_ind[index_out]
-    basic_ind[index_out] = tmp
-
-
-    used_indicies.append(basic_ind.copy())
-    print(used_indicies)
-    # print(min_value,(index_in,index_out))
-    print(basic_ind,non_basic_ind)
-
-
-    
-
-    # print(As)
-    # print(neg_col)
-    # indices = feasible.nonzero()
-    # print(indices)
-    # if(A)
-    # bi=B[:,basic_ind]
-    
-    # ts=np.min()
-    # print(As)
-    return basic_ind,non_basic_ind
-
-def simplex(A,b,C):
-    # L1 = 0
-    # L2 = 0
-    #B är Alla basic columner av A
-    #Kolla om efficient:
-    #b_streck = B^-1*b
-    #C_streckN = CN-CB*B^-1*N
-
-    #CB*b = Cx med streck
-    #Cx utan streck = CB*B^-1*b +(CN-CB*B^-1*N)*xN
-    elems = len(C[0,:])
-    num_basic = len(b)
-    num_non_basic = len(C[0,:])-num_basic
-    # print(num_non_basic)
-    # print(num_basic)
- 
-    basic_ind = np.arange(num_non_basic, num_basic + num_non_basic) #Initial feasible solution
-    non_basic_ind = np.arange(0,num_non_basic)
     # print(basic_ind,non_basic_ind)
-    # print(A)
+
+
+
+
+    print(cols)
+
+    return basic_ind,non_basic_ind
+
+def find_first_eff_sol(non_basic_ind, basic_ind, B_inv, N, used_indicies):
+    # index=9999 #remove
+    As = np.copy(N)
+    # print(B_inv)
+    # print(N)x
+    As = B_inv@N
+    b_eff = B_inv@b
+    # print(b_eff)
+
+
+    positive_in_columns = np.any(As > 0, axis=0)
+    # print(positive_in_columns)
+
+    As = As[:, positive_in_columns]
+
+
+    # print(As)
+
+    # As[2,0]=-1
+    # for i in range(len(non_basic_ind)):
+    #     neg_col = np.any(As[:, i] < 0) #Check if column is negative (Not correct)
+    #     if(neg_col):
+    #         pivot_ind = non_basic_ind[i]
+    #         #Here add how to switch
+    #         break
+    # H
+
+    # print(As)
+    # if(neg_col==False):
+    min_value = np.inf
+    index_in, index_out = np.inf, np.inf
+    # print([used for used in used_indicies])
+    # print(any(np.array_equal([3,4,2], used) for used in used_indicies))
+    for i in range(len(b_eff)):
+        for s in range(len(As[0,:])):
+            temp_basic_ind = np.array(basic_ind.copy())
+            temp_non_basic_ind = non_basic_ind.copy()
+            temp_basic_ind[i] = non_basic_ind[s]
+            temp_non_basic_ind[s] = basic_ind[i]
+            # print(temp_basic_ind)
+            if any(np.array_equal(temp_basic_ind, used) for used in used_indicies):
+                # print(temp_basic_ind, used_indicies)
+                continue
+            if As[i,s]>=0:
+                value=b_eff[i]/As[i,s]
+            else:
+                value = np.inf
+            # print(value)
+            
+            if(value<min_value):
+                # print(As[i,s])
+                print(value)
+                min_value = value
+                index_out = i
+                index_in = s
+
+
+    
+    if index_in==np.inf or index_out==np.inf:
+        raise ValueError 
+       
+    # tmp = non_basic_ind[s]
+    # non_basic_ind[s] = basic_ind[i]
+    # basic_ind[i] = tmp
+
+    tmp = non_basic_ind[index_in]
+    non_basic_ind[index_in] = basic_ind[index_out]
+    basic_ind[index_out] = tmp
+
+
+    used_indicies.append(basic_ind.copy())
+    print(used_indicies)
+    # print(min_value,(index_in,index_out))
+    print(basic_ind,non_basic_ind)
+
+
+    
+
+    # print(As)
+    # print(neg_col)
+    # indices = feasible.nonzero()
+    # print(indices)
+    # if(A)
+    # bi=B[:,basic_ind]
+    
+    # ts=np.min()
+    # print(As)
+    return basic_ind,non_basic_ind
+
+def simplex(A,b,C, num_sol = 100):
+    """
+    Solves a multi-objective linear programming problem using the Simplex method.
+
+    This function maximizes multiple objective functions subject to a set of linear constraints.
+    The multi-objective problem is formulated as:
+
+    max Cx
+
+    s.t Ax=b
+        x>=0
+
+
+    Parameters:
+    A (ndarray):  A 2D numpy array representing the constraint matrix (m x n).
+    b (ndarray):  A 1D numpy array representing the right-hand side of the constraints (m).
+    C (ndarray)   A 2D numpy array with coefficients for each objective function (k x n).
+    num_sol (int) An integer with the number of efficient solutions that should be found.
+
+    Returns:
+    ndarray: The optimal bases of the solutions.
+    ndarray: The efficient solution vectors `x` that maximizes the objectives.
+    ndarray: The optimal values of the objective functions at the solutions.
+
+    Notes:
+    - This method assumes the problem is feasible.
+    - 
+
+    """
+
+    num_basic = len(b) #Number of basic variables is the number of constraints
+    num_non_basic = len(C[0,:])-num_basic #Number of non-basic is the number of columns minus the basic variables
+    
+    #Initial feasible solution
+    basic_ind = np.arange(num_non_basic, num_basic + num_non_basic) 
+    non_basic_ind = np.arange(0,num_non_basic)
+
+    #Create a vector saving for saving the bases
+    used_indicies = [basic_ind.copy()]
+    print(basic_ind)
+
+    #Create the matrices for the initial solution
     B = A[:,basic_ind]
     N = A[:,non_basic_ind]
     CN = C[:,non_basic_ind]
     CB = C[:,basic_ind]
+    B_inv=np.linalg.inv(B)
 
-    used_indicies = [basic_ind.copy()]
-    print(basic_ind)
-    # print(B)
-    
+    eff = check_efficient(B_inv,CN,CB,N) #Check efficiency of the initial solution
 
-    # test_arr = np.array([[-1,-2,0],[-1,0,2],[1,0,-1]])
+    #Loop to find initial efficient solution
+    while not eff:
 
-    # pos_nonzero = np.any(test_arr <= 0 | test_arr[i]==0, axis=0)
-    # print(pos_nonzero)
-    for i in range(100):
+        basic_ind,non_basic_ind=find_first_eff_sol(non_basic_ind, basic_ind, B_inv, N, used_indicies) #Pivot to try to find first solution
 
-        B_inv=np.linalg.inv(B)
-
-        eff = check_efficient(B_inv,CN,CB,b,N)
-        if(eff):
-            print("EFFICIENT")
-            print(basic_ind,non_basic_ind)
-            break
-        # print(eff)
-        # print(non_basic_ind)
-        basic_ind,non_basic_ind=find_first_eff_sol(non_basic_ind, basic_ind, B, B_inv, N, used_indicies)
-
+        #Update matrices according to the pivot
         B = A[:,basic_ind]
         N = A[:,non_basic_ind]
         CN = C[:,non_basic_ind]
         CB = C[:,basic_ind]
+        B_inv=np.linalg.inv(B) #Can use try for the case that the matrix is singular
+
+        eff = check_efficient(B_inv,CN,CB,N) #Check efficiency of the solution after the pivot
 
     # Cx = CB@B_inv@b
-    basic_ind,non_basic_ind=find_all_eff_sol(non_basic_ind, basic_ind, B, B_inv, N, used_indicies)
-    eff = check_efficient(B_inv,CN,CB,b,N)
+    # basic_ind,non_basic_ind=find_all_eff_sol(non_basic_ind, basic_ind, B_inv, N, used_indicies)
+    # eff = check_efficient(B_inv,CN,CB,b,N)
+    find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N)
 
     # print(ind)
 
