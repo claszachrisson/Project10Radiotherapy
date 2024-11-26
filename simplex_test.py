@@ -487,35 +487,54 @@ def simplex(A,b,C, num_sol = 100):
             if(basic_ind==[4,8,9]):
                 print("LINPROG", result)
             # print()
-            if np.all(result.x == x0):
+            sol = result.x
+            if np.all(sol == x0):
                 print("FOUND SOL", tmp_basic_ind)
                 solution_vec.append(B_inv@b)
                 eff_ind.append(basic_ind.copy())
 
-            sol = result.x
+            else:
 
-            tmp_basic_ind = np.where(np.abs(sol)>1e-6)
-            tmp_basic_ind=list(tmp_basic_ind[0])
+                tmp_basic_ind = np.where(np.abs(sol)>1e-6)
+                tmp_basic_ind=list(tmp_basic_ind[0])
+                if any(np.array_equal(tmp_basic_ind, explore) for explore in basic_explore):
+                        solution_vec.append(B_inv@b)
+                        eff_ind.append(tmp_basic_ind.copy())
+                        basic_explore.remove(tmp_basic_ind.copy())
+                        basic_ind = sorted(tmp_basic_ind)
+                        non_basic_ind = [x for x in range(num_non_basic+num_basic) if x not in basic_ind]
+                        B = A[:,basic_ind]
+                        N = A[:,non_basic_ind]
+                        CN = C[:,non_basic_ind]
+                        CB = C[:,basic_ind]
+                        B_inv=np.linalg.inv(B) 
+                else:
+
+                        
             # if(len(tmp_basic_ind)<len(basic_ind)):
             #     tmp_basic_ind.append()
 
-            if len(tmp_basic_ind)==len(basic_ind):
-                
-                # if any(np.array_equal(tmp_basic_ind, used) for used in used_indicies):
-                #     continue
-                # else:
-                
-                basic_ind = sorted(tmp_basic_ind)
-                non_basic_ind = [x for x in range(num_non_basic+num_basic) if x not in basic_ind]
+                    if len(tmp_basic_ind)==len(basic_ind) and not any(np.array_equal(tmp_basic_ind, used) for used in used_indicies):
+                        
+                        # if any(np.array_equal(tmp_basic_ind, used) for used in used_indicies):
+                        #     continue
+                        # else:
+                        
+                        basic_ind = sorted(tmp_basic_ind)
+                        non_basic_ind = [x for x in range(num_non_basic+num_basic) if x not in basic_ind]
 
-                #Add new non-basic list
-                #Also check if the basic list is already explored
+                        #Add new non-basic list
+                        #Also check if the basic list is already explored
 
-                B = A[:,basic_ind]
-                N = A[:,non_basic_ind]
-                CN = C[:,non_basic_ind]
-                CB = C[:,basic_ind]
-                B_inv=np.linalg.inv(B) 
+                        B = A[:,basic_ind]
+                        N = A[:,non_basic_ind]
+                        CN = C[:,non_basic_ind]
+                        CB = C[:,basic_ind]
+                        B_inv=np.linalg.inv(B) 
+
+                        solution_vec.append(B_inv@b)
+                        eff_ind.append(basic_ind.copy())
+                        used_indicies.append(basic_ind.copy())
 
                 # solution_vec.append(B_inv@b)
                 # eff_ind.append(basic_ind.copy())
