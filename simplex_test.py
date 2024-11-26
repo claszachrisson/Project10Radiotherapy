@@ -54,7 +54,8 @@ def check_efficient(B_inv,CN,CB,N,first_sol,C,b, basic_ind):
 
 def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
     CN_eff = CN-CB@B_inv@N
-    # print(CN_eff.shape[1])
+    # print(CN_eff)
+    print(CN_eff.shape[1])
     cols = [i for i in range(CN_eff.shape[1]) if np.any(CN_eff[:, i] > 0) and np.any(CN_eff[:, i] < 0)]
 
     if(cols==[]):
@@ -124,7 +125,7 @@ def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
         print("Should never be printed?")
         return [], []
     ind = []
-    # print(cols)
+    print(cols)
     if len(cols)>1:
         for i in range(len(cols)):
             for j in range(len(cols)):
@@ -134,7 +135,8 @@ def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
                         break
             ind.append(i)
     else:
-        ind=[cols[0]]
+        ind=list(np.where(index_ins == 2)[0])
+
     if ind == []:
         print("No ind tsCs>trCr")
         return [], []
@@ -150,7 +152,7 @@ def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
 
     print(ind,index_ins)
     print(index_outs)
-    print(basic_ind)
+    print("Basic ind", basic_ind)
 
     for i,index in enumerate(ind):
         pivot_in = int(index_ins[index])
@@ -387,17 +389,20 @@ def simplex(A,b,C, num_sol = 100):
             x0[basic_ind]=B_inv@b
             print(x0)
 
-            result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="simplex")
+            result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
             print("LINPROG", result)
             # print()
-            if np.all(result == B_inv@b):
+            if np.all(result.x == x0):
                 solution_vec.append(B_inv@b)
                 eff_ind.append(basic_ind.copy())
+                used_indicies.append(basic_ind.copy())
 
             sol = result.x
 
             tmp_basic_ind = np.where(np.abs(sol)>1e-6)
             tmp_basic_ind=list(tmp_basic_ind[0])
+            # if(len(tmp_basic_ind)>len(basic_ind)):
+            #     print("AAAAAAA",tmp_basic_ind)
             if len(tmp_basic_ind)==len(basic_ind):
                 print("FOUND SOL", tmp_basic_ind)
                 eff = True
@@ -409,8 +414,9 @@ def simplex(A,b,C, num_sol = 100):
                 CB = C[:,basic_ind]
                 B_inv=np.linalg.inv(B) 
 
-                solution_vec.append(B_inv@b)
-                eff_ind.append(basic_ind.copy())
+                # solution_vec.append(B_inv@b)
+                # eff_ind.append(basic_ind.copy())
+                
             # print("HEJ2")
             # print(basic_ind)
             # print(CN-CB@B_inv@N)
@@ -427,6 +433,8 @@ def simplex(A,b,C, num_sol = 100):
     while sols:
 
         basic_ind_list,non_basic_ind_list=find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies)
+        print(basic_explore)
+        print("HEJ",used_indicies)
         if np.shape(basic_ind_list)!=(0,):
             for basic, non_basic in zip(basic_ind_list, non_basic_ind_list):
                 if any(np.array_equal(basic, used) for used in used_indicies):
@@ -437,6 +445,7 @@ def simplex(A,b,C, num_sol = 100):
                     non_basic_explore.append(non_basic.copy())
         if len(basic_explore)==0:
             break
+        print("This index will be checked", basic_explore[0])
         # print(basic_explore)
         # print(non_basic_explore)
         # print(used_indicies)
@@ -473,12 +482,12 @@ def simplex(A,b,C, num_sol = 100):
             x0 = np.zeros(A.shape[1])
 
             x0[basic_ind]=B_inv@b
-            print(x0)
 
-            result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="simplex")
-            print("LINPROG", result)
+            result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
+            if(basic_ind==[4,8,9]):
+                print("LINPROG", result)
             # print()
-            if np.all(result == B_inv@b):
+            if np.all(result.x == x0):
                 solution_vec.append(B_inv@b)
                 eff_ind.append(basic_ind.copy())
 
@@ -486,9 +495,22 @@ def simplex(A,b,C, num_sol = 100):
 
             tmp_basic_ind = np.where(np.abs(sol)>1e-6)
             tmp_basic_ind=list(tmp_basic_ind[0])
+            if(len(tmp_basic_ind)>len(basic_ind)):
+                print("AAAAAAA",tmp_basic_ind)
+            # if(len(tmp_basic_ind)<len(basic_ind)):
+            #     tmp_basic_ind.append()
+
             if len(tmp_basic_ind)==len(basic_ind):
+                
+                # if any(np.array_equal(tmp_basic_ind, used) for used in used_indicies):
+                #     continue
+                # else:
                 print("FOUND SOL", tmp_basic_ind)
                 basic_ind = sorted(tmp_basic_ind)
+                non_basic_ind = [x for x in range(num_non_basic+num_basic) if x not in basic_ind]
+
+                #Add new non-basic list
+                #Also check if the basic list is already explored
 
                 B = A[:,basic_ind]
                 N = A[:,non_basic_ind]
@@ -496,8 +518,8 @@ def simplex(A,b,C, num_sol = 100):
                 CB = C[:,basic_ind]
                 B_inv=np.linalg.inv(B) 
 
-                solution_vec.append(B_inv@b)
-                eff_ind.append(basic_ind.copy())
+                # solution_vec.append(B_inv@b)
+                # eff_ind.append(basic_ind.copy())
             
             # print("HEJ3")
             # print(basic_ind)
@@ -505,29 +527,19 @@ def simplex(A,b,C, num_sol = 100):
             # print(CN)
     # print(used_indicies)
     # print("HEJ")
-    print(eff_ind)
+    # print(eff_ind)
 
-    solutions = np.zeros((len(eff_ind),num_non_basic))
-    # print(len(eff_ind))
-    # print(num_non_basic)
-    
-    removed_indicies = [[i for i, val in enumerate(j) if val > num_basic-1] for j in eff_ind]
-    print(removed_indicies)
-    filtered_ind = [[val for j, val in enumerate(row) if j not in removed_indicies[i]] for i, row in enumerate(eff_ind)]
-    filtered_sol = [[val for j, val in enumerate(row) if j not in removed_indicies[i]] for i, row in enumerate(solution_vec)]
-    print(filtered_ind)
-
+    solutions = np.zeros((len(eff_ind),num_non_basic+num_basic))
     x0 = np.zeros(A.shape[1])
 
-    x0[basic_ind]=B_inv@b
-    for i in range(len(filtered_sol)):
-        for j in range(num_basic):
-            solutions[i][filtered_ind[i]] = filtered_sol[i]
-                # solutions[i][j] = 0
+    for i,sol in enumerate(solutions):
+        sol[eff_ind[i]]=solution_vec[i]
 
 
+    # print(solutions)
+    print(eff_ind)
     print(solutions)
-    return
+    return 
 
     # print(ind)
 
