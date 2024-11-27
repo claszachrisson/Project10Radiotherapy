@@ -12,7 +12,14 @@ class LUsolve:
         self.piv2ind()
 
     def solve(self,b):
-        return linalg.lu_solve((self.LU,self.piv),b)
+        b = np.array(b)
+        if(b.ndim > 1):
+            x = np.zeros([self.size, b.shape[1]])
+            for i in range(b.shape[1]):
+                x[:,i] = linalg.lu_solve((self.LU,self.piv),b[:,i])
+            return x
+        else:
+            return linalg.lu_solve((self.LU,self.piv),b)
     
     def piv2ind(self):
         self.ind = np.arange(self.size)
@@ -44,8 +51,11 @@ B = np.array([[2,0,4,0,-2], [3,1,0,1,0], [-1,0,-1,0,-2],[0,-1,0,0,-6],[0,0,1,0,4
 Bn = np.array([[2,0,7,0,-2], [3,1,-2,1,0], [-1,0,0,0,-2],[0,-1,3,0,-6],[0,0,0,0,4]])
 a = np.array([[1],[0],[3],[3],[7]])
 b = [5,0,0,0,-1]
+c = np.array([[5,0,0,0,-1],[5,0,0,0,-1],[0,7,3,0,-1]]).T
 
 x = LUsolve(B)
+print(x.solve(c))
+print("----------")
 z = LUsolve(Bn)
 newU = x.update(2,a)
 newU[:,[2,3,4]] = newU[:,[3,4,2]]
