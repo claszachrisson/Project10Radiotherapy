@@ -384,7 +384,7 @@ def simplex(A,b,C, num_sol = 100):
             # print(B_inv)
             # print("N",N)
             # print("B", B)
-            solution_vec.append(B_inv@b)        
+            solution_vec.append(B_inv.solve(b))
             eff_ind.append(basic_ind.copy())
         else:
             C_row_sum = -C.sum(axis=0)
