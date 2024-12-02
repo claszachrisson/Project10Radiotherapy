@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from simplex_test import *  # Assuming this is where your simplex function is imported
+from simplex_test import *
 
 
 class Test(unittest.TestCase):
