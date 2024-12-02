@@ -1,7 +1,6 @@
 import numpy as np
-#import jax
+import jax
 from scipy.optimize import linprog
-from LUsolve import *
 # pivot_column = A[:, s]
 
 # # Calculate the ratios b_i / a_i^s where a_i^s > 0
@@ -15,8 +14,7 @@ from LUsolve import *
 
 def check_efficient(B_inv,CN,CB,N,first_sol,C,b, basic_ind):
     
-    #CN_eff = CN-CB@B_inv@N
-    CN_eff = CN-CB@B_inv.solve(N)
+    CN_eff = CN-CB@B_inv@N
     # print(np.shape(CN_eff))
     # N_eff = B_inv@N
     # Cx = CB@B_inv@b
@@ -55,7 +53,7 @@ def check_efficient(B_inv,CN,CB,N,first_sol,C,b, basic_ind):
     return False
 
 def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
-    CN_eff = CN-CB@B_inv.solve(N)
+    CN_eff = CN-CB@B_inv@N
     # print(CN_eff)
     print(CN_eff.shape[1])
     cols = [i for i in range(CN_eff.shape[1]) if np.any(CN_eff[:, i] > 0) and np.any(CN_eff[:, i] < 0)]
@@ -67,8 +65,8 @@ def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
 
     # print("hej",cols)
 
-    As = B_inv.solve(N)
-    b_eff = B_inv.solve(b)
+    As = B_inv@N
+    b_eff = B_inv@b
 
     As=np.array(As[:,cols])
 
@@ -202,8 +200,8 @@ def find_first_eff_sol(non_basic_ind, basic_ind, B_inv, N, used_indicies):
     As = np.copy(N)
     # print(B_inv)
     # print(N)x
-    As = B_inv.solve(N)
-    b_eff = B_inv.solve(b)
+    As = B_inv@N
+    b_eff = B_inv@b
     # print(b_eff)
 
 
@@ -335,8 +333,7 @@ def simplex(A,b,C, num_sol = 100):
     N = A[:,non_basic_ind]
     CN = C[:,non_basic_ind]
     CB = C[:,basic_ind]
-    #B_inv=np.linalg.pinv(B)
-    B_inv = LUsolve(B)
+    B_inv=np.linalg.pinv(B)
 
 
     first_sol = True
@@ -359,8 +356,7 @@ def simplex(A,b,C, num_sol = 100):
         # print(B)
         # B_inv=np.linalg.inv(B) #Can use try for the case that the matrix is singular
         try:
-            #B_inv = np.linalg.pinv(B)
-            B_inv = LUsolve(B)
+            B_inv = np.linalg.pinv(B)
             # print(B)
             # print(B_inv)
         except np.linalg.LinAlgError:
@@ -384,20 +380,20 @@ def simplex(A,b,C, num_sol = 100):
             # print(B_inv)
             # print("N",N)
             # print("B", B)
-            solution_vec.append(B_inv.solve(b))
+            solution_vec.append(B_inv@b)        
             eff_ind.append(basic_ind.copy())
         else:
             C_row_sum = -C.sum(axis=0)
             x0 = np.zeros(A.shape[1])
 
-            x0[basic_ind]=B_inv.solve(b)
+            x0[basic_ind]=B_inv@b
             print(x0)
 
             result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
             print("LINPROG", result)
             # print()
             if np.all(result.x == x0):
-                solution_vec.append(B_inv.solve(b))
+                solution_vec.append(B_inv@b)
                 eff_ind.append(basic_ind.copy())
                 used_indicies.append(basic_ind.copy())
 
@@ -416,8 +412,7 @@ def simplex(A,b,C, num_sol = 100):
                 N = A[:,non_basic_ind]
                 CN = C[:,non_basic_ind]
                 CB = C[:,basic_ind]
-                #B_inv=np.linalg.inv(B) 
-                B_inv = LUsolve(B)
+                B_inv=np.linalg.inv(B) 
 
                 # solution_vec.append(B_inv@b)
                 # eff_ind.append(basic_ind.copy())
@@ -467,8 +462,7 @@ def simplex(A,b,C, num_sol = 100):
         N = A[:,non_basic_ind]
         CN = C[:,non_basic_ind]
         CB = C[:,basic_ind]
-        #B_inv=np.linalg.inv(B) #Can use try for the case that the matrix is singular
-        B_inv = LUsolve(B)
+        B_inv=np.linalg.inv(B) #Can use try for the case that the matrix is singular
         # print(basic_ind)
         eff = check_efficient(B_inv,CN,CB,N,first_sol,C,b,basic_ind)
         if eff:
@@ -481,13 +475,13 @@ def simplex(A,b,C, num_sol = 100):
             # print(B_inv)
             # print("N",N)
             # print("B", B)
-            solution_vec.append(B_inv.solve(b))
+            solution_vec.append(B_inv@b)
             eff_ind.append(basic_ind.copy())
         else:
             C_row_sum = -C.sum(axis=0)
             x0 = np.zeros(A.shape[1])
 
-            x0[basic_ind]=B_inv.solve(b)
+            x0[basic_ind]=B_inv@b
 
             result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
             if(basic_ind==[4,8,9]):
@@ -496,7 +490,7 @@ def simplex(A,b,C, num_sol = 100):
             sol = result.x
             if np.all(sol == x0):
                 print("FOUND SOL", tmp_basic_ind)
-                solution_vec.append(x0[basic_ind])
+                solution_vec.append(B_inv@b)
                 eff_ind.append(basic_ind.copy())
 
             else:
@@ -504,7 +498,7 @@ def simplex(A,b,C, num_sol = 100):
                 tmp_basic_ind = np.where(np.abs(sol)>1e-6)
                 tmp_basic_ind=list(tmp_basic_ind[0])
                 if any(np.array_equal(tmp_basic_ind, explore) for explore in basic_explore):
-                        solution_vec.append(x0[basic_ind])
+                        solution_vec.append(B_inv@b)
                         eff_ind.append(tmp_basic_ind.copy())
                         basic_explore.remove(tmp_basic_ind.copy())
                         basic_ind = sorted(tmp_basic_ind)
@@ -513,8 +507,7 @@ def simplex(A,b,C, num_sol = 100):
                         N = A[:,non_basic_ind]
                         CN = C[:,non_basic_ind]
                         CB = C[:,basic_ind]
-                        #B_inv=np.linalg.inv(B) 
-                        B_inv = LUsolve(B)
+                        B_inv=np.linalg.inv(B) 
                 else:
 
                         
@@ -537,10 +530,9 @@ def simplex(A,b,C, num_sol = 100):
                         N = A[:,non_basic_ind]
                         CN = C[:,non_basic_ind]
                         CB = C[:,basic_ind]
-                        #B_inv=np.linalg.inv(B) 
-                        B_inv=LUsolve(b)
+                        B_inv=np.linalg.inv(B) 
 
-                        solution_vec.append(B_inv.solve(b))
+                        solution_vec.append(B_inv@b)
                         eff_ind.append(basic_ind.copy())
                         used_indicies.append(basic_ind.copy())
 
