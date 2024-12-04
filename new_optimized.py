@@ -1,65 +1,53 @@
 import numpy as np
 # import jax
 from scipy.optimize import linprog
-from LUsolve import *
-# pivot_column = A[:, s]
+from LUsolve import LUsolve
 
-# # Calculate the ratios b_i / a_i^s where a_i^s > 0
-# ratios = b / pivot_column
-
-# # Only consider rows where pivot_column > 0 (i.e., a_i^s > 0)
-# positive_ratios = ratios[pivot_column > 0]
-
-# # Calculate the minimum ratio
-# t_s = np.min(positive_ratios)
 
 def check_efficient(B_inv,CN,CB,N,first_sol,C,b, basic_ind):
     
-    # CN_eff = CN-CB@B_inv@N
+    #Reduced cost vector
     CN_eff = CN-CB@B_inv.solve(N)
-    # print(np.shape(CN_eff))
-    # N_eff = B_inv@N
-    # Cx = CB@B_inv@b
 
+    #Check if any row is positive non-zero
     pos_nonzero = np.any(np.logical_or(CN_eff < 0, np.all(CN_eff == 0, axis=0)), axis=0) #Check if any column is all negative or if all zero (check correctness)
-    # print(pos_nonzero)
-    # print(CN_eff)
+
+    #If positive non-zero the solution is not efficient
     if(np.any(pos_nonzero==False)):
         print("pos_nonzero")
         return False
 
+    #If the first solution check if there is an ideal solution
     if first_sol:
         ideal_sol = np.all(CN_eff<=0)
         if(ideal_sol==True):
-            print("Ideal solution")
             return True
     
+    #If any row is negative the solution is efficient
     any_row_negative = np.all(CN_eff < 0, axis=1)
     if(np.any(any_row_negative==True)):
-        print("Any row negative")
-        # print(CN_eff)
         return True
     
+    #Calculate the sum of the rows (sum the columns)
     row_sums = CN_eff.sum(axis=0)
 
-    print("Row sum", row_sums)
-    if np.all(basic_ind==[2,4,8]):
-        print("[2,4,8]!!!!!",CN_eff)
+    #If all are 0 or negative (some small tolerance)
     if(np.all(row_sums<=1e-6)):
-        print("Row sums")
-        print(row_sums)
-        print(CN_eff)
         return True
     
-
     return False
 
-def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
-    CN_eff = CN-CB@B_inv.solve(N)
-    # print(CN_eff)
-    print(CN_eff.shape[1])
+def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies,b):
+    #
+    As = B_inv.solve(N)
+
+    #Reduced cost vector
+    CN_eff = CN-CB@As
+
+    #Cols with mixed components
     cols = [i for i in range(CN_eff.shape[1]) if np.any(CN_eff[:, i] > 0) and np.any(CN_eff[:, i] < 0)]
 
+    #
     if(cols==[]):
         print("No mixed component columns")
         return [], []
@@ -67,7 +55,7 @@ def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
 
     # print("hej",cols)
 
-    As = B_inv.solve(N)
+    
     b_eff = B_inv.solve(b)
 
     As=np.array(As[:,cols])
@@ -188,7 +176,7 @@ def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
 
     return basic_ind_list,non_basic_ind_list
 
-def find_first_eff_sol(non_basic_ind, basic_ind, B_inv, N, used_indicies):
+def find_first_eff_sol(non_basic_ind, basic_ind, B_inv, N, used_indicies,b):
     # index=9999 #remove
     As = np.copy(N)
     # print(B_inv)
@@ -336,7 +324,7 @@ def simplex(A,b,C, num_sol = 100):
 
     while not eff:
 
-        basic_ind,non_basic_ind=find_first_eff_sol(non_basic_ind, basic_ind, B_inv, N, used_indicies) #Pivot to try to find first solution
+        basic_ind,non_basic_ind=find_first_eff_sol(non_basic_ind, basic_ind, B_inv, N, used_indicies,b) #Pivot to try to find first solution
         
         #Update matrices according to the pivot
         basic_ind.sort()
@@ -426,7 +414,7 @@ def simplex(A,b,C, num_sol = 100):
     non_basic_explore = []
     while sols:
 
-        basic_ind_list,non_basic_ind_list=find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies)
+        basic_ind_list,non_basic_ind_list=find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies,b)
         print(basic_explore)
         print("HEJ",used_indicies)
         if np.shape(basic_ind_list)!=(0,):
@@ -593,13 +581,13 @@ def simplex(A,b,C, num_sol = 100):
 # C = np.array([[6,4,5],[0,0,1]])
 # C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 
-A = np.array([[1,2,1,1,2,1,2],[-2,-1,0,1,2,0,1],[0,1,2,-1,1,-2,-1]])
-A = np.hstack((A, np.eye(A.shape[0])))
-# print(A)
-# print(A)
-b = np.array([16,16,16])
-C = np.array([[1,2,-1,3,2,0,1],[0,1,1,2,3,1,0],[1,0,1,-1,0,-1,-1]])
-C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
+# A = np.array([[1,2,1,1,2,1,2],[-2,-1,0,1,2,0,1],[0,1,2,-1,1,-2,-1]])
+# A = np.hstack((A, np.eye(A.shape[0])))
+# # print(A)
+# # print(A)
+# b = np.array([16,16,16])
+# C = np.array([[1,2,-1,3,2,0,1],[0,1,1,2,3,1,0],[1,0,1,-1,0,-1,-1]])
+# C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 
 # A = np.array([[1,1,0],[0,1,0],[1,-1,1]])
 # A = np.hstack((A, np.eye(A.shape[0])))
@@ -616,6 +604,5 @@ C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 # C = np.array([[9,6],[-3,2]])
 # C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 
-simplex(A,b,C)
+# simplex(A,b,C)
 
-#Nåt bugg när man tar bort dessa delar utanför funktionen!?!?

@@ -47,37 +47,37 @@ class LUsolve:
         return self.solve(b)
 
 
-B = np.array([[2,0,4,0,-2], [3,1,0,1,0], [-1,0,-1,0,-2],[0,-1,0,0,-6],[0,0,1,0,4]])
-Bn = np.array([[2,0,7,0,-2], [3,1,-2,1,0], [-1,0,0,0,-2],[0,-1,3,0,-6],[0,0,0,0,4]])
-a = np.array([[1],[0],[3],[3],[7]])
-b = [5,0,0,0,-1]
-c = np.array([[5,0,0,0,-1],[5,0,0,0,-1],[0,7,3,0,-1]]).T
+# B = np.array([[2,0,4,0,-2], [3,1,0,1,0], [-1,0,-1,0,-2],[0,-1,0,0,-6],[0,0,1,0,4]])
+# Bn = np.array([[2,0,7,0,-2], [3,1,-2,1,0], [-1,0,0,0,-2],[0,-1,3,0,-6],[0,0,0,0,4]])
+# a = np.array([[1],[0],[3],[3],[7]])
+# b = [5,0,0,0,-1]
+# c = np.array([[5,0,0,0,-1],[5,0,0,0,-1],[0,7,3,0,-1]]).T
 
-x = LUsolve(B)
-print(x.solve(c))
-print("----------")
-z = LUsolve(Bn)
-newU = x.update(2,a)
-newU[:,[2,3,4]] = newU[:,[3,4,2]]
-newU[[2,3,4],:] = newU[[3,4,2],:]
-print(newU)
-#print(newU)
-E = np.eye(x.size)
-E[4,2] = -(newU[4,2])/newU[2,2]
-#print(newU[4,3], newU[3,3])
-E[4,3] = -(newU[4,3]+E[4,2]*newU[2,3])/newU[3,3]
-#E[4,2] = -newU[4,2]/newU[3,2]
-print(E)
-newU = E@newU
-print(np.round(newU,2))
-#print(np.round(newU,10))
-x.U=newU
-x.piv = np.array([1,3,3,4,4])
-x.piv2ind()
+# x = LUsolve(B)
+# print(x.solve(c))
+# print("----------")
+# z = LUsolve(Bn)
+# newU = x.update(2,a)
+# newU[:,[2,3,4]] = newU[:,[3,4,2]]
+# newU[[2,3,4],:] = newU[[3,4,2],:]
+# print(newU)
+# #print(newU)
+# E = np.eye(x.size)
+# E[4,2] = -(newU[4,2])/newU[2,2]
+# #print(newU[4,3], newU[3,3])
+# E[4,3] = -(newU[4,3]+E[4,2]*newU[2,3])/newU[3,3]
+# #E[4,2] = -newU[4,2]/newU[3,2]
+# print(E)
+# newU = E@newU
+# print(np.round(newU,2))
+# #print(np.round(newU,10))
+# x.U=newU
+# x.piv = np.array([1,3,3,4,4])
+# x.piv2ind()
 
 
-print(z.solve(b))
-print(x.solve2(b,E))
+# print(z.solve(b))
+# print(x.solve2(b,E))
 #print(x.L)
 #print(z.L)
 #print(x.U)
