@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from no_find_first import simplex
+from MOLP_simplex import simplex
 
 
 class Test(unittest.TestCase):
@@ -138,6 +138,56 @@ class Test(unittest.TestCase):
                 # Check if the row is in expected_result
                 if not any(np.allclose(row, expected_row, rtol=1e-9, atol=1e-9) for expected_row in expected_result):
                     raise AssertionError(f"Row {row} is not in expected result, results are {result}")
+            
+            # If all rows match, print success
+            print("All result arrays match the expected ones.")
+
+        except AssertionError as e:
+            print("Result mismatch:")
+            print("Expected result:\n", expected_result)
+            print("Actual result:\n", result)
+            raise e
+        
+    def test_simplex_example4(self):
+        A = np.array([[1,1,0],[0,1,0],[1,-1,1]])
+        A = np.hstack((A, np.eye(A.shape[0])))  # Add identity matrix to A
+        b = np.array([1, 2, 4])
+        C = np.array([[1, 2, 0],[1,0,-2],[-1,0,1]])
+        C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))  # Add zero columns to C
+
+        indices, result = simplex(A, b, C)
+        expected_indices = [[1,4,5], [0, 4, 5], [1,2,4]]
+        expected_result = [
+            [0,1,0,0,1,5],[1,0,0,0,2,3],[0,1,5,0,1,0]
+        ]
+        
+        print("RESUULT",result)
+        # Sorting indices and results before comparison
+        try:
+            # Compare indices (allow unordered)
+            if len(result)!=len(expected_result):
+                raise AssertionError(f"Result vector not same size as expected, gotten: {indices}, expected: {expected_indices}")
+            for row in indices:
+                # Check if the row is in expected_indices
+                if not any(np.array_equal(row, expected_row) for expected_row in expected_indices):
+                    raise AssertionError(f"Row {row} is not in expected indices, result indicies {indices}")
+            
+            # If all rows match, print success
+            print("All indices match the expected ones.")
+
+        except AssertionError as e:
+            print("Indices mismatch:")
+            print("Expected indices:\n", expected_indices)
+            print("Actual indices:\n", indices)
+            raise e
+
+        try:
+            # Compare result arrays (allow unordered)
+            
+            for row in result:
+                # Check if the row is in expected_result
+                if not any(np.allclose(row, expected_row, rtol=1e-9, atol=1e-9) for expected_row in expected_result):
+                    raise AssertionError(f"Row {row} is not in expected result")
             
             # If all rows match, print success
             print("All result arrays match the expected ones.")
