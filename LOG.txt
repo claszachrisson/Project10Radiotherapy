@@ -1,0 +1,81 @@
+Week 45 (Wednesday - Friday):
+	- Wednesday: 30 minute meeting with course coordinator and project supervisor, general research of the subject.
+	- Thursday: x
+	- Friday: Research and implementation of simplex method, research of voxel importance sampling, and research of the data set.
+	- Saturday: Finished reasearch of voxel importance sampling, and continued research and implementation of simplex method.
+	- Sunday: Finished research of the data set, continued research and implementation of the simplex method, continued research of 
+		  LP approach to inverse planning in GKR.
+
+Week 46:
+	- Monday: Continued research and implementation of simplex method. Continued research of LP approach to inverse planning GKR.
+	- Tuesday: Continued research and implementation of simplex method.
+	- Wednesday: Continued research and implementation of simplex method (found another article of simplex method implemented in MOLP), 
+	              went through the data using python in order to get an overview of it's structure.
+	- Thursday: Continued research of LP approach to inverse planning GKR, started working on the baseline structure of the report. 
+	- Friday: Worked on the simplex method implementation, had a productive meeting with Jens were we discussed the project, 
+	          continued researching the data.
+
+
+Week 47:
+	- Monday: Continued research and implementation of the Simplex method. Schedualed a meeting with Daniel on Friday.
+	- Tuesday: Continued research and implementation of the Simplex method, started researching Benson's method.
+	- Wednesday: Continued research of simplex method, continued implementation of simplex method.
+	- Thursday: x
+	- Friday: Had a meeting with Daniel about the simplex method and some optimization methods.
+
+Week 48:
+	- Monday: Continued research and implementation of simplex method, researched the script provided by Sebastian for voxel importance sampling, downloaded prostate files from CORT, researching LU-factorisation.
+	- Tuesday: Continued research and implementation of simplex method, continued research of LU-factorisation, continued research of the pre-processing scripts provided by sebastian.
+	- Wednesday: Worked on issues with the pre-processing scripts, continued research of LU-factorisation, continued writing the report.
+	- Thursday: Worked on the presentation.
+	- Friday: Worked on the presentation.
+
+Week 49: 
+	- Monday: Worked on the presentation, had a meeting with Daniel.
+	- Tuesday: 
+	- Wednesday:
+	- Thursday: 
+	- Friday: 
+
+Week 50: 
+	- Monday: 
+	- Tuesday: 
+	- Wednesday:
+	- Thursday: 
+	- Friday: 
+
+Week 51: 
+	- Monday: 
+	- Tuesday: 
+	- Wednesday:
+	- Thursday: 
+	- Friday: 
+
+Week 52: 
+	- Monday: 
+	- Tuesday: 
+	- Wednesday:
+	- Thursday: 
+	- Friday: 
+
+Week 1: 
+	- Monday: 
+	- Tuesday: 
+	- Wednesday:
+	- Thursday: 
+	- Friday: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
