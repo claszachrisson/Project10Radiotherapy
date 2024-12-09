@@ -41,7 +41,7 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
     #Cols with mixed components
     cols = [i for i in range(CN_eff.shape[1]) if np.any(CN_eff[:, i] > 0) and np.any(CN_eff[:, i] < 0)]
 
-    #
+    #If no mixed columns no possible eff solution in columns
     if(cols==[]):
         print("No mixed component columns")
         return []
@@ -59,7 +59,7 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
     t = np.full(len(As[0,:]),np.inf)
     index_ins, index_outs = np.full(len(As[0,:]),np.inf), np.full(len(As[0,:]),np.inf)
     for s in range(len(cols)):
-        valid = As[:, s] > 0
+        valid = As[:,s]>1e-6
         values = np.where(valid, b_eff / As[:, s], np.inf)
         min_index = np.argmin(values)
         t[s] = values[min_index]
@@ -189,6 +189,7 @@ def simplex(A,b,C, num_sol = 100):
             sol = result.x
             tmp_basic_ind = np.where(np.abs(sol)>1e-6)
             tmp_basic_ind = list(tmp_basic_ind[0])
+            
             if len(tmp_basic_ind)==len(basic_ind) and not any(np.array_equal(tmp_basic_ind, used) for used in used_indicies):
 
                 basic_ind = sorted(tmp_basic_ind)
@@ -212,7 +213,7 @@ def simplex(A,b,C, num_sol = 100):
         basic_ind_list = find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies,b)
 
         for basic in basic_ind_list:
-            used_indicies.append(basic.copy())
+        
             basic_explore.append(basic.copy())
         if len(basic_explore)==0:
             sols = False
@@ -222,6 +223,7 @@ def simplex(A,b,C, num_sol = 100):
             print(basic_explore)
             print("This index will be checked", basic_explore[0])
             basic_ind = basic_explore[0]
+            used_indicies.append(basic.copy())
             non_basic_ind = [x for x in range(num_non_basic+num_basic) if x not in basic_ind]
 
             basic_explore.pop(0)            
