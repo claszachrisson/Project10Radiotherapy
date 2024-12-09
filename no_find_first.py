@@ -1,65 +1,53 @@
 import numpy as np
-#import jax
+# import jax
 from scipy.optimize import linprog
-from LUsolve import *
-# pivot_column = A[:, s]
+from LUsolve import LUsolve
 
-# # Calculate the ratios b_i / a_i^s where a_i^s > 0
-# ratios = b / pivot_column
-
-# # Only consider rows where pivot_column > 0 (i.e., a_i^s > 0)
-# positive_ratios = ratios[pivot_column > 0]
-
-# # Calculate the minimum ratio
-# t_s = np.min(positive_ratios)
 
 def check_efficient(B_inv,CN,CB,N,first_sol,C,b, basic_ind):
     
-    #CN_eff = CN-CB@B_inv@N
+    #Reduced cost vector
     CN_eff = CN-CB@B_inv.solve(N)
-    # print(np.shape(CN_eff))
-    # N_eff = B_inv@N
-    # Cx = CB@B_inv@b
 
+    #Check if any row is positive non-zero
     pos_nonzero = np.any(np.logical_or(CN_eff < 0, np.all(CN_eff == 0, axis=0)), axis=0) #Check if any column is all negative or if all zero (check correctness)
-    # print(pos_nonzero)
-    # print(CN_eff)
+
+    #If positive non-zero the solution is not efficient
     if(np.any(pos_nonzero==False)):
         print("pos_nonzero")
         return False
 
+    #If the first solution check if there is an ideal solution
     if first_sol:
         ideal_sol = np.all(CN_eff<=0)
         if(ideal_sol==True):
-            print("Ideal solution")
             return True
     
+    #If any row is negative the solution is efficient
     any_row_negative = np.all(CN_eff < 0, axis=1)
     if(np.any(any_row_negative==True)):
-        print("Any row negative")
-        # print(CN_eff)
         return True
     
+    #Calculate the sum of the rows (sum the columns)
     row_sums = CN_eff.sum(axis=0)
 
-    print("Row sum", row_sums)
-    if np.all(basic_ind==[2,4,8]):
-        print("[2,4,8]!!!!!",CN_eff)
+    #If all are 0 or negative (some small tolerance)
     if(np.all(row_sums<=1e-6)):
-        print("Row sums")
-        print(row_sums)
-        print(CN_eff)
         return True
     
-
     return False
 
-def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
-    CN_eff = CN-CB@B_inv.solve(N)
-    # print(CN_eff)
-    print(CN_eff.shape[1])
+def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies,b):
+    #
+    As = B_inv.solve(N)
+
+    #Reduced cost vector
+    CN_eff = CN-CB@As
+
+    #Cols with mixed components
     cols = [i for i in range(CN_eff.shape[1]) if np.any(CN_eff[:, i] > 0) and np.any(CN_eff[:, i] < 0)]
 
+    #
     if(cols==[]):
         print("No mixed component columns")
         return [], []
@@ -67,7 +55,7 @@ def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
 
     # print("hej",cols)
 
-    As = B_inv.solve(N)
+    
     b_eff = B_inv.solve(b)
 
     As=np.array(As[:,cols])
@@ -76,45 +64,37 @@ def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
 
     t = np.full(len(As[0,:]),np.inf)
     index_ins, index_outs = np.full(len(As[0,:]),np.inf), np.full(len(As[0,:]),np.inf)
-    for i in range(len(b_eff)):
-        for s in range(len(cols)):
-            # print(temp_basic_ind)
-                # print(temp_basic_ind, used_indicies)
-            if As[i,s]>0:
-                value=b_eff[i]/As[i,s]
-            else:
-                value = np.inf
-            # print(value)
-            
-            if(value<t[s]):
-                # print(As[i,s])
-                # print(value)
-                t[s] = value
-                index_outs[s] = i
-                index_ins[s] = cols[s]
+    for s in range(len(cols)):
+        valid = As[:, s] > 0
+        values = np.where(valid, b_eff / As[:, s], np.inf)
+        min_index = np.argmin(values)
+        t[s] = values[min_index]
+        if t[s] < np.inf:
+            index_outs[s] = min_index
+            index_ins[s] = cols[s]
     
     # print(len(index_outs),len(cols))
-    ind_to_remove=[]
-    # print(cols)
-    for i in range(len(index_outs)):
+    # ind_to_remove=[]
+    # # print(cols)
+    # for i in range(len(index_outs)):
 
-        pivot_in = int(index_ins[i])
-        pivot_out = int(index_outs[i])
+    #     pivot_in = int(index_ins[i])
+    #     pivot_out = int(index_outs[i])
 
-        temp_basic_ind = basic_ind.copy()
-        temp_basic_ind[pivot_out] = non_basic_ind[pivot_in]
-        # print(temp_basic_ind)
+    #     temp_basic_ind = basic_ind.copy()
+    #     temp_basic_ind[pivot_out] = non_basic_ind[pivot_in]
+    #     # print(temp_basic_ind)
 
-        # temp_basic_ind=np.array([3,4,5])
-        # print(used_indicies)
+    #     # temp_basic_ind=np.array([3,4,5])
+    #     # print(used_indicies)
 
-        if any(np.array_equal(temp_basic_ind, used) for used in used_indicies):
-            ind_to_remove.append(i)
-            # cols.pop(i)
-            # print(cols)
-        # print(ind_to_remove)
-    for i in reversed(ind_to_remove):
-        cols.pop(i)  # Pop the element at index i
+    #     if any(np.array_equal(temp_basic_ind, used) for used in used_indicies):
+    #         ind_to_remove.append(i)
+    #         # cols.pop(i)
+    #         # print(cols)
+    #     # print(ind_to_remove)
+    # for i in reversed(ind_to_remove):
+    #     cols.pop(i)  # Pop the element at index i
     # print(cols)
     tC = np.zeros((len(CN_eff[:,0]),len(cols)))
     for i in range(len(cols)):
@@ -129,15 +109,14 @@ def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
     ind = []
     print(cols)
     if len(cols)>1:
-        for i in range(len(cols)):
-            for j in range(len(cols)):
-                if i != j:
-                    # print(i,j)
-                    if np.all(tC[:,j]>=tC[:,i]):
-                        break
-            ind.append(i)
+        dominance_matrix = np.all(tC[:, :, None] <= tC[:, None, :], axis=0)
+        np.fill_diagonal(dominance_matrix, False)
+        non_dominated = ~np.any(dominance_matrix, axis=0)
+
+        # Indices of non-dominated columns
+        ind = np.where(non_dominated)[0].tolist()
     else:
-        ind=list(np.where(index_ins == 2)[0])
+        ind=[0]
 
     if ind == []:
         print("No ind tsCs>trCr")
@@ -179,7 +158,7 @@ def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
         print(basic_ind_list[i])
 
     # print(non_basic_ind_list)
-    print("Should be sorted",basic_ind_list)
+    # print("Should be sorted",basic_ind_list)
     # used_indicies.append(basic_ind.copy())
     # print(np.max(CN_eff[0,cols]))
     # print(CN_eff)
@@ -197,7 +176,7 @@ def find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies):
 
     return basic_ind_list,non_basic_ind_list
 
-def find_first_eff_sol(non_basic_ind, basic_ind, B_inv, N, used_indicies):
+def find_first_eff_sol(non_basic_ind, basic_ind, B_inv, N, used_indicies,b):
     # index=9999 #remove
     As = np.copy(N)
     # print(B_inv)
@@ -335,113 +314,57 @@ def simplex(A,b,C, num_sol = 100):
     N = A[:,non_basic_ind]
     CN = C[:,non_basic_ind]
     CB = C[:,basic_ind]
-    #B_inv=np.linalg.pinv(B)
     B_inv = LUsolve(B)
-
-
-    first_sol = True
-    eff = check_efficient(B_inv,CN,CB,N,first_sol,C,b, basic_ind) #Check efficiency of the initial solution
 
     #Loop to find initial efficient solution
 
-    while not eff:
-
-        basic_ind,non_basic_ind=find_first_eff_sol(non_basic_ind, basic_ind, B_inv, N, used_indicies) #Pivot to try to find first solution
-        
-        #Update matrices according to the pivot
-        basic_ind.sort()
-        B = A[:,basic_ind]
-        N = A[:,non_basic_ind]
-        CN = C[:,non_basic_ind]
-        CB = C[:,basic_ind]
-        print("U")
-        print(basic_ind)
-        # print(B)
-        # B_inv=np.linalg.inv(B) #Can use try for the case that the matrix is singular
-        try:
-            #B_inv = np.linalg.pinv(B)
-            B_inv = LUsolve(B)
-            # print(B)
-            # print(B_inv)
-        except np.linalg.LinAlgError:
-            print("SINGULAR MATRIX!")
-            basic_ind = used_indicies[-2]
-            print(basic_ind)
-            non_basic_ind = [x for x in range(num_non_basic+num_basic) if x not in basic_ind]
-            print(non_basic_ind)
-            B = A[:,basic_ind]
-            N = A[:,non_basic_ind]
-            CN = C[:,non_basic_ind]
-            CB = C[:,basic_ind]
-            continue
-        eff = check_efficient(B_inv,CN,CB,N,first_sol,C,b,basic_ind) #Check efficiency of the solution after the pivot
-        if eff:
-            # print("Basic ind",basic_ind)
-            # print("Non basic ind",non_basic_ind)
-            # print(CN-CB@B_inv@N)
-            # print(CN)
-            # print(CB)
-            # print(B_inv)
-            # print("N",N)
-            # print("B", B)
-            solution_vec.append(B_inv.solve(b))
-            eff_ind.append(basic_ind.copy())
-        else:
-            C_row_sum = -C.sum(axis=0)
-            x0 = np.zeros(A.shape[1])
-
-            x0[basic_ind]=B_inv.solve(b)
-            print(x0)
-
-            result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
-            print("LINPROG", result)
-            # print()
-            if np.all(result.x == x0):
-                solution_vec.append(B_inv.solve(b))
-                eff_ind.append(basic_ind.copy())
-                used_indicies.append(basic_ind.copy())
-            else:
-
-                sol = result.x
-
-                tmp_basic_ind = np.where(np.abs(sol)>1e-6)
-                tmp_basic_ind=list(tmp_basic_ind[0])
-                # if(len(tmp_basic_ind)>len(basic_ind)):
-                #     print("AAAAAAA",tmp_basic_ind)
-                if len(tmp_basic_ind)==len(basic_ind):
-                    print("FOUND SOL", tmp_basic_ind)
-                    eff = True
-                    basic_ind=sorted(tmp_basic_ind)
-
-                    B = A[:,basic_ind]
-                    N = A[:,non_basic_ind]
-                    CN = C[:,non_basic_ind]
-                    CB = C[:,basic_ind]
-                    #B_inv=np.linalg.inv(B) 
-                    B_inv = LUsolve(B)
-                    solution_vec.append(B_inv.solve(b))
-                    eff_ind.append(basic_ind.copy())
-                    used_indicies.append(basic_ind.copy())
-
-                # solution_vec.append(B_inv@b)
-                # eff_ind.append(basic_ind.copy())
-                
-            # print("HEJ2")
-            # print(basic_ind)
-            # print(CN-CB@B_inv@N)
-            # print(B_inv@b)
-    # print(eff_ind)
-    # print(solution_vec)
-    # Cx = CB@B_inv@b
-    # basic_ind,non_basic_ind=find_all_eff_sol(non_basic_ind, basic_ind, B_inv, N, used_indicies)
-    # eff = check_efficient(B_inv,CN,CB,b,N)
     first_sol = False
     sols=True
     basic_explore = []
     non_basic_explore = []
     while sols:
+        eff = check_efficient(B_inv,CN,CB,N,first_sol,C,b,basic_ind)
+        if eff:
 
-        basic_ind_list,non_basic_ind_list=find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies)
+            solution_vec.append(B_inv.solve(b))
+            eff_ind.append(basic_ind.copy())
+            used_indicies.append(basic_ind.copy())
+
+        else:
+            C_row_sum = -C.sum(axis=0)
+            x0 = np.zeros(A.shape[1])
+
+            x0[basic_ind]=B_inv.solve(b)
+
+            result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
+            sol = result.x
+            tmp_basic_ind = np.where(np.abs(sol)>1e-6)
+            tmp_basic_ind = list(tmp_basic_ind[0])
+            if len(tmp_basic_ind)==len(basic_ind) and not any(np.array_equal(tmp_basic_ind, used) for used in used_indicies):
+
+                # if any(np.array_equal(tmp_basic_ind, used) for used in used_indicies):
+                #     continue
+                # else:
+
+                basic_ind = sorted(tmp_basic_ind)
+                non_basic_ind = [x for x in range(num_non_basic+num_basic) if x not in basic_ind]
+
+                
+
+                #Add new non-basic list
+                B = A[:,basic_ind]
+                N = A[:,non_basic_ind]
+                CN = C[:,non_basic_ind]
+                CB = C[:,basic_ind]
+                B_inv = LUsolve(B)
+
+                solution_vec.append(B_inv.solve(b))
+                eff_ind.append(basic_ind.copy())
+                used_indicies.append(basic_ind.copy())
+
+
+
+        basic_ind_list,non_basic_ind_list=find_all_eff_sol(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies,b)
         print(basic_explore)
         print("HEJ",used_indicies)
         if np.shape(basic_ind_list)!=(0,):
@@ -453,100 +376,28 @@ def simplex(A,b,C, num_sol = 100):
                     basic_explore.append(basic.copy())
                     non_basic_explore.append(non_basic.copy())
         if len(basic_explore)==0:
-            break
-        print("This index will be checked", basic_explore[0])
+            sols = False
+        
         # print(basic_explore)
         # print(non_basic_explore)
         # print(used_indicies)
-
-        basic_ind = basic_explore[0]
-        non_basic_ind = non_basic_explore[0]
-        basic_explore.pop(0)
-        non_basic_explore.pop(0)
-        
-        # print(basic_ind,non_basic_ind)
-
-
-        B = A[:,basic_ind]
-        N = A[:,non_basic_ind]
-        CN = C[:,non_basic_ind]
-        CB = C[:,basic_ind]
-        #B_inv=np.linalg.inv(B) #Can use try for the case that the matrix is singular
-        B_inv = LUsolve(B)
-        # print(basic_ind)
-        eff = check_efficient(B_inv,CN,CB,N,first_sol,C,b,basic_ind)
-        if eff:
-            # print(eff_ind)
-            # print("Basic ind",basic_ind)
-            # print("Non basic ind",non_basic_ind)
-            # print(CN-CB@B_inv@N)
-            # print(CN)
-            # print(CB)
-            # print(B_inv)
-            # print("N",N)
-            # print("B", B)
-            solution_vec.append(B_inv.solve(b))
-            eff_ind.append(basic_ind.copy())
         else:
-            C_row_sum = -C.sum(axis=0)
-            x0 = np.zeros(A.shape[1])
+            print("This index will be checked", basic_explore[0])
+            basic_ind = basic_explore[0]
+            non_basic_ind = non_basic_explore[0]
+            basic_explore.pop(0)
+            non_basic_explore.pop(0)
+            
+            # print(basic_ind,non_basic_ind)
 
-            x0[basic_ind]=B_inv.solve(b)
 
-            result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
-            if(basic_ind==[4,8,9]):
-                print("LINPROG", result)
-            # print()
-            sol = result.x
-            if np.all(sol == x0):
-                print("FOUND SOL", tmp_basic_ind)
-                solution_vec.append(x0[basic_ind])
-                eff_ind.append(basic_ind.copy())
-
-            else:
-
-                tmp_basic_ind = np.where(np.abs(sol)>1e-6)
-                tmp_basic_ind=list(tmp_basic_ind[0])
-                if any(np.array_equal(tmp_basic_ind, explore) for explore in basic_explore):
-                        solution_vec.append(x0[basic_ind])
-                        eff_ind.append(tmp_basic_ind.copy())
-                        basic_explore.remove(tmp_basic_ind.copy())
-                        basic_ind = sorted(tmp_basic_ind)
-                        non_basic_ind = [x for x in range(num_non_basic+num_basic) if x not in basic_ind]
-                        B = A[:,basic_ind]
-                        N = A[:,non_basic_ind]
-                        CN = C[:,non_basic_ind]
-                        CB = C[:,basic_ind]
-                        #B_inv=np.linalg.inv(B) 
-                        B_inv = LUsolve(B)
-                else:
-
-                        
-            # if(len(tmp_basic_ind)<len(basic_ind)):
-            #     tmp_basic_ind.append()
-
-                    if len(tmp_basic_ind)==len(basic_ind) and not any(np.array_equal(tmp_basic_ind, used) for used in used_indicies):
-                        
-                        # if any(np.array_equal(tmp_basic_ind, used) for used in used_indicies):
-                        #     continue
-                        # else:
-                        
-                        basic_ind = sorted(tmp_basic_ind)
-                        non_basic_ind = [x for x in range(num_non_basic+num_basic) if x not in basic_ind]
-
-                        #Add new non-basic list
-                        #Also check if the basic list is already explored
-
-                        B = A[:,basic_ind]
-                        N = A[:,non_basic_ind]
-                        CN = C[:,non_basic_ind]
-                        CB = C[:,basic_ind]
-                        #B_inv=np.linalg.inv(B) 
-                        B_inv=LUsolve(b)
-
-                        solution_vec.append(B_inv.solve(b))
-                        eff_ind.append(basic_ind.copy())
-                        used_indicies.append(basic_ind.copy())
+            B = A[:,basic_ind]
+            N = A[:,non_basic_ind]
+            CN = C[:,non_basic_ind]
+            CB = C[:,basic_ind]
+            B_inv=LUsolve(B) #Can use try for the case that the matrix is singular
+            # print(basic_ind)
+       
 
                 # solution_vec.append(B_inv@b)
                 # eff_ind.append(basic_ind.copy())
@@ -605,7 +456,7 @@ def simplex(A,b,C, num_sol = 100):
 
 A = np.array([[1,2,1,1,2,1,2],[-2,-1,0,1,2,0,1],[0,1,2,-1,1,-2,-1]])
 A = np.hstack((A, np.eye(A.shape[0])))
-print(A)
+# print(A)
 # print(A)
 b = np.array([16,16,16])
 C = np.array([[1,2,-1,3,2,0,1],[0,1,1,2,3,1,0],[1,0,1,-1,0,-1,-1]])
@@ -618,4 +469,13 @@ C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 # C = np.array([[-1,-2,0],[-1,0,2],[1,0,-1]])
 # C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 
+# A = np.array([[-6,3],[3,2],[4,-2],[0,1]])
+# A = np.hstack((A, np.eye(A.shape[0])))
+# print(A)
+# # print(A)
+# b = np.array([12,30,24,6])
+# C = np.array([[9,6],[-3,2]])
+# C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
+
 simplex(A,b,C)
+
