@@ -1,6 +1,4 @@
 TG119/
 test.py
 .DS_Store
-__pycache__/LUsolve.cpython-311.pyc
-__pycache__/old.cpython-311.pyc
-__pycache__/simplex_test.cpython-311.pyc
+__pycache__/
