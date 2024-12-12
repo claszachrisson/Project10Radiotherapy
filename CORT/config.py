@@ -4,11 +4,13 @@ dataset = 'CORT'
 
 # base_path = '/home/sebastian/data/CORT'
 #base_path = '/Users/Emil_/Documents/Project beräkning/efficient_rtp'
+CORT_path = '/Users/claszachrisson/Downloads/MOLP/efficient_rtp'
+binaries_path = 'CORT/binaries/'
 
-def get_config(case, base_path):
+def get_config(case):
     if case == 'Prostate':
         # specify the data path
-        data_path = f'{base_path}/Data/Prostate'
+        data_path = f'{CORT_path}/Data/Prostate'
 
         # gantry levels to consider
         # np.arange(0, 359, 360/5)
@@ -52,7 +54,7 @@ def get_config(case, base_path):
 
     elif case == 'Liver':
         # specify the data path
-        data_path = f'{base_path}/Liver/'
+        data_path = f'{CORT_path}/Liver/'
 
         # gantry levels to consider
         gantry_angles = [32, 90, 148, 212, 270, 328]
@@ -102,7 +104,7 @@ def get_config(case, base_path):
 
     elif case == 'HeadAndNeck':
         # specify the data path
-        data_path = f'{base_path}/HeadAndNeck/'
+        data_path = f'{CORT_path}/HeadAndNeck/'
 
         # gantry levels to consider
         # np.arange(0, 359, 360/5)
