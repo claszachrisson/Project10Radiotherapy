@@ -26,11 +26,16 @@ def prob(case='Prostate'):
     C[1] = np.sum(D_OAR, axis=0) / n_OAR
     C[2] = np.sum(D_PTV, axis=0) / n_PTV
 
-    A = vstack(D_BDY,D_OAR,D_PTV)
-    b = np.vstack(BDY_threshold * np.ones(n_BDY, 1), 
-                  OAR_threshold * np.ones(n_OAR,1), 
-                  -target_dose_PTV * np.ones(n_PTV,1))
-    
+    A = vstack([D_BDY,D_OAR,D_PTV])
+    #b = np.vstack([BDY_threshold * np.ones((n_BDY, 1)), 
+    #              OAR_threshold * np.ones((n_OAR,1)), 
+    #              -target_dose_PTV * np.ones((n_PTV,1))])
+    print(BDY_threshold, OAR_threshold, target_dose_PTV)
+    b = np.vstack([np.full((n_BDY, 1), BDY_threshold), 
+                  np.full((n_OAR,1), OAR_threshold), 
+                  np.full((n_PTV,1), -target_dose_PTV)])
+
+    print(A.shape)
     return (A,b,C)
 
 prob('Liver')

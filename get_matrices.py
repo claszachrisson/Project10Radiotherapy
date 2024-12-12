@@ -94,7 +94,7 @@ def main(case='Prostate', save_to_files=False, path=''):
 
         np.save('taget_doze_PTV.npy', target_dose_PTV)
     
-    return (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BDY_threshold, OAR_threshold, target_dose_PTV)
+    return (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BDY_threshold, OAR_threshold, PTV_dose)
 
 
 if __name__ == '__main__':
