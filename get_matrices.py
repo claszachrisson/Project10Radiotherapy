@@ -1,8 +1,6 @@
 import fire
 
-from time import time
-from os.path import exists
-
+from pathlib import Path
 import numpy as np
 import scipy as sp
 import scipy.sparse
@@ -13,8 +11,7 @@ import CORT.config as config
 
 ################################################################################
 
-
-def main(case='Prostate', save_to_files=False, path=''):
+def main(case='Prostate', save_to_files=False):
 
     """
     case = 'Prostate'
@@ -35,8 +32,9 @@ def main(case='Prostate', save_to_files=False, path=''):
 
     if case not in ['Prostate','Liver','HeadAndNeck']:
         exit(f'ERROR: case is {case} but it should be either Prostate, Liver, or HeadAndNeck')
+    
+    cfg = config.get_config(case)
 
-    cfg = config.get_config(case, path)
     data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold, eta, steps = cfg
 
 
@@ -88,11 +86,12 @@ def main(case='Prostate', save_to_files=False, path=''):
 
     if(save_to_files):
         # Save data in binary form
-        scipy.sparse.save_npz('D_BDY.npz', D_BDY)
-        scipy.sparse.save_npz('D_OAR.npz', D_OAR)
-        scipy.sparse.save_npz('D_PTV.npz', D_PTV)
+        Path(config.binaries_path).mkdir(parents=True, exist_ok=True)
+        scipy.sparse.save_npz(config.binaries_path + case + '_D_BDY.npz', D_BDY)
+        scipy.sparse.save_npz(config.binaries_path + case + '_D_OAR.npz', D_OAR)
+        scipy.sparse.save_npz(config.binaries_path + case + '_D_PTV.npz', D_PTV)
 
-        np.save('taget_doze_PTV.npy', target_dose_PTV)
+        np.save(config.binaries_path + case + '_target_doze_PTV.npy', target_dose_PTV)
     
     return (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BDY_threshold, OAR_threshold, PTV_dose)
 
