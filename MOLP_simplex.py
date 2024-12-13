@@ -133,7 +133,7 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
     return basic_ind_list
 
 
-def simplex(A,b,C, std_form = True, num_sol = 100):
+def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
     """
     Solves a multi-objective linear programming problem using the Simplex method.
 
@@ -167,12 +167,17 @@ def simplex(A,b,C, std_form = True, num_sol = 100):
     if std_form==False:
         A = np.hstack((A, np.eye(A.shape[0])))
         C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
+    
 
     num_basic = len(b) #Number of basic variables is the number of constraints
     num_non_basic = len(C[0,:])-num_basic #Number of non-basic is the number of columns minus the basic variables
-    
+
     #Initial feasible solution
-    basic_ind = list(np.arange(num_non_basic, num_basic + num_non_basic))
+    if Initial_basic!=None:
+        basic_ind = Initial_basic
+    else:
+        basic_ind = list(np.arange(num_non_basic, num_basic + num_non_basic))
+
     non_basic_ind = list(np.arange(0,num_non_basic))
 
     #Create a vector saving for saving the results

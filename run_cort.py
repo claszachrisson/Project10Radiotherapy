@@ -1,5 +1,5 @@
 from MOLP_simplex import simplex
-from MOLP_radther import prob
+from CORT.utils import prob
 
 A,b,C = prob('Liver', True, BDY_downsample=1000, OAR_downsample=50, PTV_downsample=10)
 
