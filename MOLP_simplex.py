@@ -1,6 +1,8 @@
 import numpy as np
+import scipy.sparse as sci_sp
 # import jax
 from scipy.optimize import linprog
+
 from LUsolve import LUsolve
 
 
@@ -145,7 +147,7 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
     return basic_ind_list
 
 
-def simplex(A,b,C, num_sol = 100):
+def simplex(A,b,C, std_form = True, num_sol = 100):
     """
     Solves a multi-objective linear programming problem using the Simplex method.
 
@@ -174,6 +176,9 @@ def simplex(A,b,C, num_sol = 100):
     - 
 
     """
+    if std_form==False:
+        A = np.hstack((A, np.eye(A.shape[0])))
+        C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 
     num_basic = len(b) #Number of basic variables is the number of constraints
     num_non_basic = len(C[0,:])-num_basic #Number of non-basic is the number of columns minus the basic variables
@@ -321,13 +326,13 @@ def simplex(A,b,C, num_sol = 100):
 # C = np.array([[6,4,5],[0,0,1]])
 # C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 
-A = np.array([[1,2,1,1,2,1,2],[-2,-1,0,1,2,0,1],[0,1,2,-1,1,-2,-1]])
-A = np.hstack((A, np.eye(A.shape[0])))
-# print(A)
-# print(A)
-b = np.array([16,16,16])
-C = np.array([[1,2,-1,3,2,0,1],[0,1,1,2,3,1,0],[1,0,1,-1,0,-1,-1]])
-C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
+# A = np.array([[1,2,1,1,2,1,2],[-2,-1,0,1,2,0,1],[0,1,2,-1,1,-2,-1]])
+# A = np.hstack((A, np.eye(A.shape[0])))
+# # print(A)
+# # print(A)
+# b = np.array([16,16,16])
+# C = np.array([[1,2,-1,3,2,0,1],[0,1,1,2,3,1,0],[1,0,1,-1,0,-1,-1]])
+# C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 
 # A = np.array([[1,1,0],[0,1,0],[1,-1,1]])
 # A = np.hstack((A, np.eye(A.shape[0])))
@@ -344,5 +349,5 @@ C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 # C = np.array([[9,6],[-3,2]])
 # C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
 
-simplex(A,b,C)
+# simplex(A,b,C)
 
