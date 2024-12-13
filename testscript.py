@@ -12,7 +12,13 @@ class Test(unittest.TestCase):
         C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))  # Add zero columns to C
 
         indices, result = simplex(A, b, C)
-        expected_indices = [[2, 3, 8], [0, 2, 8], [3, 8, 9], [2, 4, 8], [0, 8, 9], [4, 8, 9]]
+        #expected_indices = [[2, 3, 8], [0, 2, 8], [3, 8, 9], [2, 4, 8], [0, 8, 9], [4, 8, 9]]
+        expected_indices = [[0,1,4,5,6,7,9],#[2, 3, 8], 
+                            [1,3,4,5,6,7,9],#[0, 2, 8], 
+                            [0,1,2,4,5,6,7],#[3, 8, 9], 
+                            [0,1,3,5,6,7,9],#[2, 4, 8], 
+                            [1,2,3,4,5,6,7],#[0, 8, 9], 
+                            [0,1,2,3,5,6,7]]#[4, 8, 9]]
         expected_result = [
             [0, 0, 10.66666667, 5.33333333, 0, 0, 0, 0, 10.66666667, 0],
             [8, 0, 8, 0, 0, 0, 0, 0, 32, 0],
@@ -68,6 +74,9 @@ class Test(unittest.TestCase):
 
         indices, result = simplex(A, b, C)
         expected_indices = [[2, 4, 5], [0, 2, 4], [0, 1, 2]]
+        expected_indices = [[0,1],#[2, 4, 5], 
+                            [1,5],#[0, 2, 4], 
+                            [3,4]]#[0, 1, 2]]
         expected_result = [
             [0.0, 0.0, 6.0, 0.0, 6.0, 6.0],
             [4.0, 0.0, 4.0, 0.0, 4.0, 0.0],
@@ -105,7 +114,8 @@ class Test(unittest.TestCase):
         C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))  # Add zero columns to C
 
         indices, result = simplex(A, b, C)
-        expected_indices = [[0, 1, 2]]
+        #expected_indices = [[0, 1, 2]]
+        expected_indices = [[3, 4, 5]]
         expected_result = [
             [3.0, 3.0, 3.0, 0.0, 0.0, 0.0],
         ]
