@@ -6,11 +6,11 @@ from math import floor
 import CORT
 
 try:
-    import config
+    import CORT.config as config
 except ImportError:
-    with open("config.py", "w") as f:
-        f.write("CORT_path = 'insert_path_to_CORT_directory'\nbinaries_path = 'binaries/'")
-    import config
+    with open("CORT/config.py", "w") as f:
+        f.write("CORT_path = 'insert_path_to_CORT_directory'\nbinaries_path = 'CORT/binaries/'")
+    import CORT.config as config
 
 ################################################################################
 
