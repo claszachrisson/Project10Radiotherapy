@@ -333,5 +333,8 @@ def prob(case='Prostate', from_files=False, BDY_downsample=1, OAR_downsample=1, 
 
     C = np.hstack([Ct, CBDY1, CBDY0, COAR1, COAR0, CPTV0, CPTV1])
 
+    i = np.array([np.arange((len_t+sub_n_BDY), (len_t+2*sub_n_BDY)),
+                  np.arange((len_t+2*sub_n_BDY+sub_n_OAR), (len_t+2*sub_n_BDY+2*sub_n_OAR)),
+                  np.arange((len_t+2*sub_n_BDY+2*sub_n_OAR+sub_n_PTV), (len_t+2*sub_n_BDY+2*sub_n_OAR+2*sub_n_PTV))])
     print("Problem construction done.")
-    return A,b,C
+    return A,b,C,i
