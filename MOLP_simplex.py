@@ -173,7 +173,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
     num_non_basic = len(C[0,:])-num_basic #Number of non-basic is the number of columns minus the basic variables
 
     #Initial feasible solution
-    if Initial_basic!=None:
+    if Initial_basic is not None:
         basic_ind = Initial_basic
     else:
         basic_ind = list(np.arange(num_non_basic, num_basic + num_non_basic))
