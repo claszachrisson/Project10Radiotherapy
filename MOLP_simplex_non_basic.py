@@ -288,15 +288,18 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
 
 
     solutions = np.zeros((len(eff_ind),num_non_basic+num_basic))
-    x0 = np.zeros(A.shape[1])
 
-    for i in range(len(eff_ind)):
-        # Create a mask to find indices that are NOT in eff_ind[i]
-        mask = np.ones_like(sol, dtype=bool)  # Start with all `True`
-        mask[eff_ind[i]] = False  # Set the indices in `eff_ind[i]` to `False`
+    # for i in range(len(eff_ind)):
+    #     # Create a mask to find indices that are NOT in eff_ind[i]
+    #     mask = np.ones_like(sol, dtype=bool)  # Start with all `True`
+    #     mask[eff_ind[i]] = False  # Set the indices in `eff_ind[i]` to `False`
         
-        # Update the `sol` array for the indices not in `eff_ind[i]`
-        sol[mask] = solution_vec[i]
+    #     # Update the `sol` array for the indices not in `eff_ind[i]`
+    #     sol[mask] = solution_vec[i]
+
+    for i,sol in enumerate(solutions):
+        ind = sorted(set(range(solutions.shape[1]))-set(eff_ind[i]))
+        sol[ind]=solution_vec[i]
 
 
 
