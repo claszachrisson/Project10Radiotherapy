@@ -3,9 +3,14 @@ import numpy as np
 import scipy.sparse as sp
 from math import floor
 
-import CORT.CORT as CORT
-import CORT.config as config
-# import utils
+import CORT
+
+try:
+    import config
+except ImportError:
+    with open("config.py", "w") as f:
+        f.write("CORT_path = 'insert_path_to_CORT_directory'\nbinaries_path = 'binaries/'")
+    import config
 
 ################################################################################
 
