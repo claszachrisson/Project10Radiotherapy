@@ -16,7 +16,6 @@ def check_efficient(B_inv,CN,CB,N):
 
     #If positive non-zero the solution is not efficient
     if(np.any(pos_nonzero==False)):
-        print("pos_nonzero")
         return False
     
     #If any row is negative the solution is efficient
@@ -45,7 +44,6 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
 
     #If no mixed columns no possible eff solution in columns
     if(cols==[]):
-        print("No mixed component columns")
         return []
 
 
@@ -62,27 +60,20 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
     index_ins, index_outs = np.full(len(As[0,:]),np.inf), np.full(len(As[0,:]),np.inf)
     for s in range(len(cols)):
         valid = As[:,s]>1e-6
-        print(As[:,s])
         values = np.where(valid, b_eff / As[:, s], np.inf)
-        print("values",values)
         min_index = np.argmin(values)
         t[s] = values[min_index]
         if t[s] < np.inf:
             index_outs[s] = int(min_index)
             index_ins[s] = int(cols[s])
-            print("ind in", index_ins)
-            print("ind out", index_outs)
-    
+
     tC = np.zeros((len(CN_eff[:,0]),len(cols)))
     for i in range(len(cols)):
         tC[:,i]=t[i]*CN_eff[:,cols[i]]
 
     if cols==[]:
-        print("Should never be printed?")
         return []
     ind = []
-    print(tC)
-    print(len(cols))
     if len(cols)>1:
         dominance_matrix = np.all(tC[:, :, None] < tC[:, None, :], axis=0)
         np.fill_diagonal(dominance_matrix, False)
@@ -91,11 +82,8 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
         ind = np.where(non_dominated)[0].tolist()
     else:
         ind=[0]
-    print("ind!", ind)
     
-    print(basic_ind)
     if ind == []:
-        print("No ind tsCs>trCr")
         return []
     
 
@@ -142,8 +130,6 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
     basic_ind_list = tmp_basic_ind_list[~matches_in_both].tolist()
 
     # Remove matching rows from tmp_basic_ind_list
-    print("Basic_ind_list",basic_ind_list)
-    print("Used indicies",used_indicies)
     return basic_ind_list
 
 
@@ -176,6 +162,8 @@ def simplex(A,b,C, std_form = True, num_sol = 100):
     - 
 
     """
+    iters = -1
+    print("STARTING MOLP SIMPLEX")
     if std_form==False:
         A = np.hstack((A, np.eye(A.shape[0])))
         C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))
@@ -211,6 +199,8 @@ def simplex(A,b,C, std_form = True, num_sol = 100):
         return True
     
     while sols:
+        iters+=1
+        print(f"Iteration {iters}, with solution len {len(eff_ind)}")
         eff = check_efficient(B_inv,CN,CB,N)
         if eff:
 
@@ -232,7 +222,7 @@ def simplex(A,b,C, std_form = True, num_sol = 100):
                 tmp_basic_ind = np.where(np.abs(sol)>1e-6)
                 tmp_basic_ind = list(tmp_basic_ind[0])
 
-            print("LINPROG",tmp_basic_ind)
+            # print("LINPROG",tmp_basic_ind)
 
             if len(tmp_basic_ind)==len(basic_ind) and not any(np.array_equal(tmp_basic_ind, used) for used in used_indicies):
 
@@ -264,9 +254,7 @@ def simplex(A,b,C, std_form = True, num_sol = 100):
             sols = False
         
         else:
-            print(len(basic_explore))
-            print(basic_explore)
-            print("This index will be checked", basic_explore[0])
+
             used_indicies.append(basic_ind.copy())
             basic_ind = basic_explore[0]
             
@@ -289,9 +277,7 @@ def simplex(A,b,C, std_form = True, num_sol = 100):
         sol[eff_ind[i]]=solution_vec[i]
 
 
-    # print(solutions)
-    print(eff_ind)
-    print(solutions)
+
     return eff_ind, solutions
 
     # print(ind)
