@@ -316,7 +316,7 @@ def prob(case='Prostate', from_files=False, BDY_downsample=1, OAR_downsample=1, 
     print("A matrix done. Constructing B vector...")
     b = np.vstack([np.full((sub_n_BDY, 1), BDY_threshold), 
                    np.full((sub_n_OAR,1), OAR_threshold), 
-                   np.full((sub_n_PTV,1), PTV_dose)])
+                   np.full((sub_n_PTV,1), PTV_dose)]).flatten()
 
     print("b vector done. Constructing C matrix...")
     Ct = np.zeros((3,len_t))
@@ -332,9 +332,9 @@ def prob(case='Prostate', from_files=False, BDY_downsample=1, OAR_downsample=1, 
     CPTV0 = np.zeros((3,sub_n_PTV))
 
     C = np.hstack([Ct, CBDY1, CBDY0, COAR1, COAR0, CPTV0, CPTV1])
-
-    i = np.hstack([np.arange((len_t+sub_n_BDY), (len_t+2*sub_n_BDY)),
+    
+    i = list(np.hstack([np.arange((len_t+sub_n_BDY), (len_t+2*sub_n_BDY)),
                   np.arange((len_t+2*sub_n_BDY+sub_n_OAR), (len_t+2*sub_n_BDY+2*sub_n_OAR)),
-                  np.arange((len_t+2*sub_n_BDY+2*sub_n_OAR+sub_n_PTV), (len_t+2*sub_n_BDY+2*sub_n_OAR+2*sub_n_PTV))]).flatten()
+                  np.arange((len_t+2*sub_n_BDY+2*sub_n_OAR+sub_n_PTV), (len_t+2*sub_n_BDY+2*sub_n_OAR+2*sub_n_PTV))]).flatten())
     print("Problem construction done.")
     return A,b,C,i

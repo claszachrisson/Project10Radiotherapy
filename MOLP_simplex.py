@@ -40,13 +40,16 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
     CN_eff = CN-CB@As
 
     #Cols with mixed components
-    cols = [i for i in range(CN_eff.shape[1]) if np.any(CN_eff[:, i] > 0) and np.any(CN_eff[:, i] < 0)]
+    cols = [i for i in range(CN_eff.shape[1]) if np.any(CN_eff[:, i] > 1e-5) and np.any(CN_eff[:, i] < 1e-5)]
+
+    # print(len(cols))
+    # print(CN_eff)
 
     #If no mixed columns no possible eff solution in columns
     if(cols==[]):
         return []
 
-
+    
 
     #For pivoting
     b_eff = B_inv.solve(b)
@@ -66,20 +69,22 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
         if t[s] < np.inf:
             index_outs[s] = int(min_index)
             index_ins[s] = int(cols[s])
-
-    tC = np.zeros((len(CN_eff[:,0]),len(cols)))
-    for i in range(len(cols)):
+    mask = np.isfinite(t)
+    t = t[mask]
+    tC = np.zeros((len(CN_eff[:,0]),len(t)))
+    for i in range(len(t)):
         tC[:,i]=t[i]*CN_eff[:,cols[i]]
-
+    # print(tC)
     if cols==[]:
         return []
     ind = []
-    if len(cols)>1:
+    if len(t)>1:
         dominance_matrix = np.all(tC[:, :, None] < tC[:, None, :], axis=0)
         np.fill_diagonal(dominance_matrix, False)
         non_dominated = ~np.any(dominance_matrix, axis=0)
 
         ind = np.where(non_dominated)[0].tolist()
+        print(ind)
     else:
         ind=[0]
     
@@ -93,6 +98,7 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
     rows = np.arange(len(ind))
     pivot_ins = index_ins[ind].astype(int)
     pivot_outs = index_outs[ind].astype(int)
+    # print(pivot_ins)
 
     # Create a temporary copy of non_basic_ind
     tmp_non_basic_ind = np.array(non_basic_ind.copy())
@@ -208,7 +214,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
         print(f"Iteration {iters}, with solution len {len(eff_ind)}")
         eff = check_efficient(B_inv,CN,CB,N)
         if eff:
-
+            print("CHECK EFF")
             solution_vec.append(B_inv.solve(b))
             eff_ind.append(basic_ind.copy())
             # used_indicies.append(basic_ind.copy())
@@ -216,6 +222,8 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
         else:
             C_row_sum = -C.sum(axis=0)
             x0 = np.zeros(A.shape[1])
+
+            # print(B_inv.solve(b).shape)
 
             x0[basic_ind]=B_inv.solve(b)
 
@@ -230,7 +238,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             # print("LINPROG",tmp_basic_ind)
 
             if len(tmp_basic_ind)==len(basic_ind) and not any(np.array_equal(tmp_basic_ind, used) for used in used_indicies):
-
+                print("LINPROG")
                 basic_ind = sorted(tmp_basic_ind)
                 non_basic_ind = [x for x in range(num_non_basic+num_basic) if x not in basic_ind]
 
@@ -251,7 +259,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
 
         
         basic_ind_list = find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies,basic_explore,b)
-
+        print(len(basic_ind_list))
         for basic in basic_ind_list:
         
             basic_explore.append(basic.copy())
