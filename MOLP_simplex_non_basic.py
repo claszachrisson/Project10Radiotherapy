@@ -3,8 +3,7 @@ import scipy.sparse as sci_sp
 # import jax as np
 from scipy.optimize import linprog
 import time
-
-from LUsolve import LUsolve
+from tools import LU
 
 
 def check_efficient(B_inv,CN,CB,N):
@@ -200,7 +199,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
     N = A[:,non_basic_ind]
     CN = C[:,non_basic_ind]
     CB = C[:,basic_ind]
-    B_inv = LUsolve(B)
+    B_inv = LU(B)
 
     #Loop to find initial efficient solution
 
@@ -253,7 +252,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
                 N = A[:,non_basic_ind]
                 CN = C[:,non_basic_ind]
                 CB = C[:,basic_ind]
-                B_inv = LUsolve(B)
+                B_inv = LU(B)
 
                 solution_vec.append(B_inv.solve(b))
                 eff_ind.append(non_basic_ind.copy())
@@ -284,7 +283,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             N = A[:,non_basic_ind]
             CN = C[:,non_basic_ind]
             CB = C[:,basic_ind]
-            B_inv=LUsolve(B)
+            B_inv=LU(B)
 
 
     solutions = np.zeros((len(eff_ind),num_non_basic+num_basic))
