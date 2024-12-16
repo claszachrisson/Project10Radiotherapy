@@ -1,6 +1,7 @@
 import numpy as np
 # import jax
 from scipy.optimize import linprog
+import time
 
 from tools import LU
 
@@ -205,15 +206,24 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
     if(ideal_sol==True):
         return True
     
+    t = [0,0,0,0]
+    
     while sols:
         iters+=1
         print(f"Iteration {iters}, with solution len {len(eff_ind)}, basic explore: {len(basic_explore)}")
+        try:
+            print(f"Times spent: {[round(tt,3) for tt in t]}")
+        except ZeroDivisionError:
+            pass
+        tt = time.time()
         eff = check_efficient(B_inv,CN,CB,N)
+        t[0] += time.time()-tt
         if eff:
             print("CHECK EFF")
             solution_vec.append(B_inv.solve(b))
             eff_ind.append(B_ind.copy())
         else:
+            tt = time.time()
             C_row_sum = -C.sum(axis=0)
             x0 = np.zeros(A.shape[1])
             x0[B_ind]=B_inv.solve(b)
@@ -236,7 +246,6 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
                 tmp_B_indb = ind2bin(tmp_B_ind2)
                 if (len(tmp_B_ind2)==num_basic) and not tmp_B_indb in used_indices:
                     tmp_B_ind = tmp_B_ind2
-
             # print("LINPROG",tmp_B_ind)
 
             #if len(tmp_B_ind)==len(basic_ind) and not any([np.array_equal(tmp_B_ind, used) for used in used_indices]):
@@ -259,8 +268,12 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
 
                 solution_vec.append(B_inv.solve(b))
                 eff_ind.append(B_ind.copy())
+            t[1] += time.time() - tt
         
+        tt = time.time()
         basic_ind_list = find_possible_eff_sols(N_ind, B_ind, B_inv, CN, CB, N, used_indices,basic_explore,b,B_indb,num_basic,num_variables)
+        t[2] += time.time() - tt
+        tt = time.time()
         # print(len(basic_ind_list))
         for basic in basic_ind_list:
             basic_explore.append(basic)
@@ -287,6 +300,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             CB = C[:,B_ind]
             CN = C[:,N_ind]
             B_inv=LU(B)
+        t[3] += time.time()-tt
 
     solutions = np.zeros((len(eff_ind),num_variables))
     x0 = np.zeros(A.shape[1])
