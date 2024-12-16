@@ -3,8 +3,7 @@ import scipy.sparse as sci_sp
 # import jax as np
 from scipy.optimize import linprog
 import time
-
-from LUsolve import LUsolve
+from tools import LU
 
 
 def check_efficient(B_inv,CN,CB,N):
@@ -200,7 +199,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
     N = A[:,non_basic_ind]
     CN = C[:,non_basic_ind]
     CB = C[:,basic_ind]
-    B_inv = LUsolve(B)
+    B_inv = LU(B)
 
     #Loop to find initial efficient solution
 
@@ -253,7 +252,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
                 N = A[:,non_basic_ind]
                 CN = C[:,non_basic_ind]
                 CB = C[:,basic_ind]
-                B_inv = LUsolve(B)
+                B_inv = LU(B)
 
                 solution_vec.append(B_inv.solve(b))
                 eff_ind.append(non_basic_ind.copy())
@@ -284,19 +283,22 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             N = A[:,non_basic_ind]
             CN = C[:,non_basic_ind]
             CB = C[:,basic_ind]
-            B_inv=LUsolve(B)
+            B_inv=LU(B)
 
 
     solutions = np.zeros((len(eff_ind),num_non_basic+num_basic))
-    x0 = np.zeros(A.shape[1])
 
-    for i in range(len(eff_ind)):
-        # Create a mask to find indices that are NOT in eff_ind[i]
-        mask = np.ones_like(sol, dtype=bool)  # Start with all `True`
-        mask[eff_ind[i]] = False  # Set the indices in `eff_ind[i]` to `False`
+    # for i in range(len(eff_ind)):
+    #     # Create a mask to find indices that are NOT in eff_ind[i]
+    #     mask = np.ones_like(sol, dtype=bool)  # Start with all `True`
+    #     mask[eff_ind[i]] = False  # Set the indices in `eff_ind[i]` to `False`
         
-        # Update the `sol` array for the indices not in `eff_ind[i]`
-        sol[mask] = solution_vec[i]
+    #     # Update the `sol` array for the indices not in `eff_ind[i]`
+    #     sol[mask] = solution_vec[i]
+
+    for i,sol in enumerate(solutions):
+        ind = sorted(set(range(solutions.shape[1]))-set(eff_ind[i]))
+        sol[ind]=solution_vec[i]
 
 
 
