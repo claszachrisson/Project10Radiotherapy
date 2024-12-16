@@ -17,6 +17,38 @@ class LU:
             return x
         else:
             return linalg.lu_solve((self.LU,self.piv),b)
+        
+class Matrices():
+    def __init__(self,A,b,C, B_indb, n_vars):
+        self.A = A
+        self.C = C
+        self.b = b
+        self.n_vars = n_vars
+        self.update(B_indb)
+
+    def update(self,B_indb):
+        self.B_indb = B_indb
+        self.N_indb = ~B_indb
+        self.B_ind = bin2ind(self.B_indb, self.n_vars)
+        self.N_ind = bin2ind(self.N_indb, self.n_vars)
+        self.B = self.A[:,self.B_ind]
+        self.CB = self.C[:,self.B_ind]
+        self.N = self.A[:,self.N_ind]
+        self.CN = self.C[:,self.N_ind]
+        self.B_inv = LU(self.B)
+        self.BinvN = self._BinvN()
+        self.CN_eff = self._CN_eff()
+        self.Binvb = self._Binvb()
+    
+    def _BinvN(self):
+        return self.B_inv.solve(self.N)
+    
+    def _CN_eff(self):
+        return self.CN-self.CB@self.BinvN
+    
+    def _Binvb(self):
+        return self.B_inv.solve(self.b)
+
 
 class HiddenPrints:
     def __enter__(self):
