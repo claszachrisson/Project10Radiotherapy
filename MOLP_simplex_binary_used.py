@@ -116,7 +116,7 @@ def find_possible_eff_sols(M, used_indices, basic_explore,num_basic):
     pivot_outs = index_outs[ind].astype(int)
     for i in range(len(ind)):
         tmp_B_indb = (M.B_indb & ~(1 << int(M.B_ind[pivot_outs[i]]))) | (1 << int(M.N_ind[pivot_ins[i]]))
-        if not tmp_B_indb in used_indices:# and not tmp_B_indb in basic_explore:
+        if not tmp_B_indb in used_indices and not tmp_B_indb in basic_explore:
             basic_ind_list.append(tmp_B_indb)
 
 
@@ -252,7 +252,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
         basic_ind_list = find_possible_eff_sols(M, used_indices,basic_explore,num_basic)
         t[3] += time.time() - tt
         tt = time.time()
-        # print(len(basic_ind_list))
+
         for basic in basic_ind_list:
             basic_explore.append(basic)
 
@@ -269,16 +269,6 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
                     in_used = False
 
             M.update(B_indb)
-            # N_indb = ~B_indb
-            # B_ind = bin2ind(B_indb, num_variables)
-            # N_ind = bin2ind(N_indb, num_variables)
-            # if(len(B_ind) != num_basic):
-            #     print(f"B_ind length error, len: {len(B_ind)}")
-            # B = A[:,B_ind]
-            # N = A[:,N_ind]
-            # CB = C[:,B_ind]
-            # CN = C[:,N_ind]
-            # B_inv=LU(B)
         t[4] += time.time()-tt
 
     solutions = np.zeros((len(eff_ind),num_variables))
