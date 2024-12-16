@@ -293,6 +293,7 @@ def prob(case='Prostate', from_files=False, BDY_downsample=1, OAR_downsample=1, 
     print('Downsampling to:')
     print(sub_n_BDY, sub_n_OAR, sub_n_PTV)
 
+    np.random.seed(42)
     sub_BDY_ind = np.random.choice(n_BDY, sub_n_BDY, replace=False)
     sub_OAR_ind = np.random.choice(n_OAR, sub_n_OAR, replace=False)
     sub_PTV_ind = np.random.choice(n_PTV, sub_n_PTV, replace=False)
@@ -332,9 +333,11 @@ def prob(case='Prostate', from_files=False, BDY_downsample=1, OAR_downsample=1, 
     CPTV0 = np.zeros((3,sub_n_PTV))
 
     C = np.hstack([Ct, CBDY1, CBDY0, COAR1, COAR0, CPTV0, CPTV1])
-    
+
     i = list(np.hstack([np.arange((len_t+sub_n_BDY), (len_t+2*sub_n_BDY)),
                   np.arange((len_t+2*sub_n_BDY+sub_n_OAR), (len_t+2*sub_n_BDY+2*sub_n_OAR)),
                   np.arange((len_t+2*sub_n_BDY+2*sub_n_OAR+sub_n_PTV), (len_t+2*sub_n_BDY+2*sub_n_OAR+2*sub_n_PTV))]).flatten())
     print("Problem construction done.")
+    print(f"Number of basic variables: {len(b)}")
+    print(f"Number of non-basic variables: {len(C[0,:])-len(b)}")
     return A,b,C,i
