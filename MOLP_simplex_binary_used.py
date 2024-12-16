@@ -106,7 +106,7 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
         non_dominated = ~np.any(dominance_matrix, axis=0)
 
         ind = np.where(non_dominated)[0].tolist()
-        print(ind)
+        #print(ind)
     else:
         ind=[0]
     
@@ -118,7 +118,7 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
     pivot_outs = index_outs[ind].astype(int)
     for i in range(len(ind)):
         tmp_B_indb = (B_indb & ~(1 << int(basic_ind[pivot_outs[i]]))) | (1 << int(non_basic_ind[pivot_ins[i]]))
-        if not tmp_B_indb in used_indices and not tmp_B_indb in basic_explore:
+        if not tmp_B_indb in used_indices:# and not tmp_B_indb in basic_explore:
             basic_ind_list.append(tmp_B_indb)
 
 
@@ -270,9 +270,14 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
         else:
             print("Changing basis")
             used_indices.append(B_indb)
-            B_indb = basic_explore[0]
+            in_used = True
+            while in_used:
+                B_indb = basic_explore[0]
+                basic_explore.pop(0)
+                if(B_indb not in used_indices):
+                    in_used = False
+
             N_indb = ~B_indb
-            basic_explore.pop(0)
             B_ind = bin2ind(B_indb, num_variables)
             N_ind = bin2ind(N_indb, num_variables)
             if(len(B_ind) != num_basic):
