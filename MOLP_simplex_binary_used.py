@@ -207,7 +207,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
     
     while sols:
         iters+=1
-        print(f"Iteration {iters}, with solution len {len(eff_ind)}")
+        print(f"Iteration {iters}, with solution len {len(eff_ind)}, basic explore: {len(basic_explore)}")
         eff = check_efficient(B_inv,CN,CB,N)
         if eff:
             print("CHECK EFF")
