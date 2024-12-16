@@ -26,3 +26,12 @@ class HiddenPrints:
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.stdout.close()
         sys.stdout = self._original_stdout
+
+def bin2ind(bin, n_var):
+    return [i for i in range(n_var) if (bin & (1 << i))]
+
+def ind2bin(ind):
+    bin = 0
+    for i in ind:
+        bin = bin | (1 << int(i))
+    return bin
