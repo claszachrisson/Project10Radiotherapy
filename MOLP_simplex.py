@@ -83,7 +83,7 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
         non_dominated = ~np.any(dominance_matrix, axis=0)
 
         ind = np.where(non_dominated)[0].tolist()
-        print(ind)
+        # print(ind)
     else:
         ind=[0]
     
@@ -116,15 +116,15 @@ def find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indi
 
     #TRY TO OPTIMIZE THIS
     if used_indicies_tmp.size > 0:
-        matches_in_used = np.array([np.any(np.all(row == used_indicies_tmp, axis=1)) for row in tmp_basic_ind_list])
+        # Search for each row in tmp_basic_ind_list_sorted in the sorted used_indicies_tmp
+        matches_in_used = np.isin(tmp_basic_ind_list, used_indicies_tmp).all(axis=1)
     else:
-    # If used_indicies_tmp is empty, set all matches to False
         matches_in_used = np.zeros(tmp_basic_ind_list.shape[0], dtype=bool)
 
-    if len(basic_explore)>0:
-        matches_in_explore = np.array([np.any(np.all(row == basic_explore, axis=1)) for row in tmp_basic_ind_list])
+    if len(basic_explore) > 0:
+        # Search for each row in tmp_basic_ind_list_sorted in the sorted basic_explore
+        matches_in_explore = np.isin(tmp_basic_ind_list, basic_explore).all(axis=1)
     else:
-    # If used_indicies_tmp is empty, set all matches to False
         matches_in_explore = np.zeros(tmp_basic_ind_list.shape[0], dtype=bool)
     # Combine the matches: True if the row is in either used_indicies_tmp or basic_explore
     matches_in_both = matches_in_used | matches_in_explore
@@ -210,7 +210,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
     
     while sols:
         iters+=1
-        print(f"Iteration {iters}, with solution len {len(eff_ind)}")
+        print(f"Iteration {iters}, with solution len {len(eff_ind)}, basic explore: {len(basic_explore)}")
         eff = check_efficient(B_inv,CN,CB,N)
         if eff:
             print("CHECK EFF")
@@ -226,8 +226,14 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
 
             x0[basic_ind]=B_inv.solve(b)
 
-            result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
-            sol = result.x
+            try:
+                result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
+                sol = result.x
+            except Exception as e:
+                print(f"An error occurred during the linprog optimization: {e}")
+                print("Proceeding!")
+                sol=[]
+
             if np.all(sol == x0):
                 tmp_basic_ind = basic_ind.copy()
             else:
@@ -258,7 +264,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
 
         
         basic_ind_list = find_possible_eff_sols(non_basic_ind, basic_ind, B_inv, CN, CB, N, used_indicies,basic_explore,b)
-        # print(len(basic_ind_list))
+        print(len(basic_ind_list))
         for basic in basic_ind_list:
         
             basic_explore.append(basic.copy())
@@ -289,7 +295,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
         sol[eff_ind[i]]=solution_vec[i]
 
 
-
+    np.savez('result.npz', list_data=eff_ind, array_data=solutions)
     return eff_ind, solutions
 
     # print(ind)
