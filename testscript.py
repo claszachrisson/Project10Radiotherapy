@@ -1,7 +1,9 @@
 import unittest
 import numpy as np
-from MOLP_simplex import simplex
+from MOLP_simplex_non_basic import simplex
+import tools
 
+verbose_output = False
 
 class Test(unittest.TestCase):
     def test_simplex_example1(self):
@@ -11,7 +13,12 @@ class Test(unittest.TestCase):
         C = np.array([[1, 2, -1, 3, 2, 0, 1], [0, 1, 1, 2, 3, 1, 0], [1, 0, 1, -1, 0, -1, -1]])
         C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))  # Add zero columns to C
 
-        indices, result = simplex(A, b, C)
+        if verbose_output:
+            indices, result = simplex(A, b, C)
+        else:
+            with tools.HiddenPrints():
+                indices, result = simplex(A, b, C)
+
         #expected_indices = [[2, 3, 8], [0, 2, 8], [3, 8, 9], [2, 4, 8], [0, 8, 9], [4, 8, 9]]
         expected_indices = [[0,1,4,5,6,7,9],#[2, 3, 8], 
                             [1,3,4,5,6,7,9],#[0, 2, 8], 
@@ -72,11 +79,16 @@ class Test(unittest.TestCase):
         C = np.array([[6, 4, 5], [0, 0, 1]])
         C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))  # Add zero columns to C
 
-        indices, result = simplex(A, b, C)
+        if verbose_output:
+            indices, result = simplex(A, b, C)
+        else:
+            with tools.HiddenPrints():
+                indices, result = simplex(A, b, C)
+
         expected_indices = [[2, 4, 5], [0, 2, 4], [0, 1, 2]]
-        expected_indices = [[0,1],#[2, 4, 5], 
-                            [1,5],#[0, 2, 4], 
-                            [3,4]]#[0, 1, 2]]
+        expected_indices = [[0,1,3],#[2, 4, 5], 
+                            [1,3,5],#[0, 2, 4], 
+                            [3,4,5]]#[0, 1, 2]]
         expected_result = [
             [0.0, 0.0, 6.0, 0.0, 6.0, 6.0],
             [4.0, 0.0, 4.0, 0.0, 4.0, 0.0],
@@ -113,7 +125,12 @@ class Test(unittest.TestCase):
         C = np.array([[6, 4, 5]])
         C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))  # Add zero columns to C
 
-        indices, result = simplex(A, b, C)
+        if verbose_output:
+            indices, result = simplex(A, b, C)
+        else:
+            with tools.HiddenPrints():
+                indices, result = simplex(A, b, C)
+
         #expected_indices = [[0, 1, 2]]
         expected_indices = [[3, 4, 5]]
         expected_result = [
@@ -165,8 +182,16 @@ class Test(unittest.TestCase):
         C = np.array([[1, 2, 0],[1,0,-2],[-1,0,1]])
         C = np.hstack((C, np.zeros((C.shape[0], A.shape[0]))))  # Add zero columns to C
 
-        indices, result = simplex(A, b, C)
-        expected_indices = [[1,4,5], [0, 4, 5], [1,2,4]]
+        if verbose_output:
+            indices, result = simplex(A, b, C)
+        else:
+            with tools.HiddenPrints():
+                indices, result = simplex(A, b, C)
+
+        #expected_indices = [[1,4,5], [0, 4, 5], [1,2,4]]
+        expected_indices = [[0,2,3],#[1,4,5], 
+                            [1,2,3],#[0, 4, 5], 
+                            [0,3,5]]#[1,2,4]]
         expected_result = [
             [0,1,0,0,1,5],[1,0,0,0,2,3],[0,1,5,0,1,0]
         ]
