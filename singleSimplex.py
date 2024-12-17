@@ -1,5 +1,5 @@
 import numpy as np
-from LUsolve import LUsolve
+from tools import LU
 
 def solveLin(C,A,b,Basic,nonBasic,x0):
     """
@@ -27,7 +27,7 @@ def solveLin(C,A,b,Basic,nonBasic,x0):
             x = np.zeros(A.shape[1])
             return x
         
-        binv = LUsolve(B_s)
+        binv = LU(B_s)
         
         b_bar = binv.solve(b_s)
         cn = c[nonBasic_s]-np.transpose(binv.solve(A_s[:,nonBasic_s]))@c[Basic_s]
