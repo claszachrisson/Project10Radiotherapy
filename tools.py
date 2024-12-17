@@ -49,6 +49,10 @@ class Matrices():
     def _Binvb(self):
         return self.B_inv.solve(self.b)
 
+class Basis:
+    def __init__(self, B_indb):
+        self.B_indb = B_indb
+        self.pivots = deque()
 
 class HiddenPrints:
     def __enter__(self):
