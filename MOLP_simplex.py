@@ -5,6 +5,7 @@ from scipy.optimize import linprog
 
 from tools import LU
 from in_reference import is_row_in_reference
+from singleSimplex import solveLin
 
 
 def check_efficient(B_inv,CN,CB,N):
@@ -239,7 +240,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             x0[basic_ind]=B_inv.solve(b)
 
             try:
-                result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
+                result = solveLin(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
                 sol = result.x
             except Exception as e:
                 print(f"An error occurred during the linprog optimization: {e}")
