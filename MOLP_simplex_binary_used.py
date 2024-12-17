@@ -213,9 +213,6 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
         t[3] += time.time() - tt
         tt = time.time()
 
-        # if len(bases_explore)==0:
-        #     sols = False
-        # else:
         used_indices.append(B_indb)
         valid = False
         while not valid:
