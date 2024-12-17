@@ -1,6 +1,7 @@
 from scipy import linalg
 import numpy as np
 import os, sys
+from collections import deque
 
 class LU:
     def __init__(self, B):
