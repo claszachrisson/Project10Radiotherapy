@@ -240,8 +240,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             x0[basic_ind]=B_inv.solve(b)
 
             try:
-                result = solveLin(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
-                sol = result.x
+                sol = solveLin(C,A,b,basic_ind,non_basic_ind,x0)
             except Exception as e:
                 print(f"An error occurred during the linprog optimization: {e}")
                 print("Proceeding!")
