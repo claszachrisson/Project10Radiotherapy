@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from MOLP_simplex import simplex
+from MOLP_simplex_linprog import simplex
 
 
 class Test(unittest.TestCase):
