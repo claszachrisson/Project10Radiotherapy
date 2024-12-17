@@ -2,8 +2,10 @@ import numpy as np
 # import jax
 from scipy.optimize import linprog
 import time
+from collections import deque
 
-from tools import LU, ind2bin, bin2ind, Matrices
+#from tools import LU, tools.ind2bin, tools.bin2ind, tools.Matrices
+import tools
 
 def check_efficient(M):
 
@@ -28,7 +30,7 @@ def check_efficient(M):
     
     return False
 
-def find_possible_eff_sols(M, used_indices, basic_explore,num_basic):
+def find_possible_eff_sols(M):
     As = M.BinvN
 
     #Cols with mixed components
@@ -63,7 +65,7 @@ def find_possible_eff_sols(M, used_indices, basic_explore,num_basic):
     tC = t * M.CN_eff[:, cols]
     # print(tC)
     if cols.size==0:
-        return []
+        return False
     ind = []
     if len(t)>1:
         dominance_matrix = np.all(tC[:, :, None] < tC[:, None, :], axis=0)
@@ -71,23 +73,19 @@ def find_possible_eff_sols(M, used_indices, basic_explore,num_basic):
         non_dominated = ~np.any(dominance_matrix, axis=0)
 
         ind = np.where(non_dominated)[0].tolist()
-        #print(ind)
     else:
         ind=[0]
     
     if ind == []:
-        return []
+        return False
     
-    basic_ind_list = []
     pivot_ins = index_ins[ind].astype(int)
     pivot_outs = index_outs[ind].astype(int)
+    B = tools.Basis(M.B_indb)
     for i in range(len(ind)):
-        tmp_B_indb = (M.B_indb & ~(1 << int(M.B_ind[pivot_outs[i]]))) | (1 << int(M.N_ind[pivot_ins[i]]))
-        if not tmp_B_indb in used_indices and not tmp_B_indb in basic_explore:
-            basic_ind_list.append(tmp_B_indb)
-
-
-    return basic_ind_list
+        B.pivots.append( ( int(M.B_ind[pivot_outs[i]]), int(M.N_ind[pivot_ins[i]]) ) )
+    
+    return B
 
 
 def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
@@ -135,7 +133,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
     else:
         B_ind = list(np.arange(num_non_basic, num_variables))
 
-    B_indb = ind2bin(list(B_ind))
+    B_indb = tools.ind2bin(list(B_ind))
     if(B_indb == 0):
         print("Error when converting B_ind to binary")
         exit()
@@ -143,17 +141,17 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
     #print(format(B_indb,f'0{num_variables}b'))
 
     #Create a list saving for saving the results
-    used_indices = []
+    used_indices = deque(maxlen=1000)
+    bases_explore = deque()
     eff_ind = []
     solution_vec = []
 
     #Create the matrices for the initial solution
-    M = Matrices(A,b,C,B_indb,num_variables)
+    M = tools.Matrices(A,b,C,B_indb,num_variables)
 
     #Loop to find initial efficient solution
 
-    sols=True
-    basic_explore = []
+    explore=True
 
     ideal_sol = np.all(M.CN_eff<=0)
     if(ideal_sol==True):
@@ -162,9 +160,9 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
     t = [0,0,0,0,0]
     C_row_sum = -C.sum(axis=0)
     
-    while sols:
+    while explore:
         iters+=1
-        print(f"Iteration {iters}, with solution len {len(eff_ind)}, basic explore: {len(basic_explore)}")
+        print(f"Iteration {iters}, with solution len {len(eff_ind)}, basic explore: {len(bases_explore)}")
         print(f"Times spent: {[round(tt,3) for tt in t]}")
         tt = time.time()
         eff = check_efficient(M)
@@ -194,46 +192,47 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             else:
                 tmp_B_ind2 = np.where(np.abs(sol)>1e-6)
                 tmp_B_ind2 = list(tmp_B_ind2[0])
-                tmp_B_indb = ind2bin(tmp_B_ind2)
+                tmp_B_indb = tools.ind2bin(tmp_B_ind2)
                 if (len(tmp_B_ind2)==num_basic) and not tmp_B_indb in used_indices:
                     tmp_B_ind = tmp_B_ind2
 
             if tmp_B_ind != -1:
                 print("LINPROG")
                 used_indices.append(B_indb)
-                B_indb = ind2bin(tmp_B_ind)
+                B_indb = tools.ind2bin(tmp_B_ind)
                 M.update(B_indb)
-
-                # #Add new non-basic list
-                # B = A[:,B_ind]
-                # N = A[:,N_ind]
-                # CB = C[:,B_ind]
-                # CN = C[:,N_ind]
-                # B_inv = LU(B)
 
                 solution_vec.append(M.Binvb)
                 eff_ind.append(B_ind.copy())
             t[1] += time.time() - tt
         
         tt = time.time()
-        basic_ind_list = find_possible_eff_sols(M, used_indices,basic_explore,num_basic)
+        bases = find_possible_eff_sols(M)
+        if(bases):
+            bases_explore.append(bases)
         t[3] += time.time() - tt
         tt = time.time()
 
-        for basic in basic_ind_list:
-            basic_explore.append(basic)
-
-        if len(basic_explore)==0:
-            sols = False
-        else:
-            print("Changing basis")
-            used_indices.append(B_indb)
-            in_used = True
-            while in_used:
-                B_indb = basic_explore[0]
-                basic_explore.pop(0)
+        # if len(bases_explore)==0:
+        #     sols = False
+        # else:
+        used_indices.append(B_indb)
+        valid = False
+        while not valid:
+            try:
+                pivots = bases_explore[0].pivots.popleft()
+                B_indb = (bases_explore[0].B_indb & ~(1 << pivots[0])) | (1 << pivots[1])
                 if(B_indb not in used_indices):
-                    in_used = False
+                    valid = True
+            except IndexError: # No more pivots left of first basis in bases_explore
+                try:
+                    bases_explore.popleft()
+                    continue
+                except IndexError: # No more bases left to explore
+                    print(bases_explore)
+                    explore=False
+                    print("Explore false")
+                    break
 
             M.update(B_indb)
         t[4] += time.time()-tt
