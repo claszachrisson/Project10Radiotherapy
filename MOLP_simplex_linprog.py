@@ -3,6 +3,7 @@ import numpy as np
 from scipy.optimize import linprog
 import time
 from collections import deque
+from singleSimplex import solveLin
 
 #from tools import LU, tools.ind2bin, tools.bin2ind, tools.Matrices
 import tools
@@ -170,7 +171,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
         if eff:
             print("CHECK EFF")
             solution_vec.append(M.Binvb)
-            eff_ind.append(B_ind.copy())
+            eff_ind.append(M.B_ind.copy())
         else:
             tt = time.time()
             x0 = np.zeros(A.shape[1])
@@ -179,6 +180,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             try:
                 tlp = time.time()
                 result = linprog(C_row_sum, b_ub = -C@x0, A_ub = -C, A_eq = A, b_eq = b, x0=x0, method="revised simplex")
+                #result = solveLin(C,A,b,M.B_ind,M.N_ind,x0)
                 t[2] += time.time()-tlp
                 sol = result.x
             except Exception as e:
@@ -186,24 +188,24 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
                 print("Proceeding!")
                 sol=np.zeros(x0.shape)
 
-            tmp_B_ind = -1
+            new_B_ind = -1
             if np.all(sol == x0):
-                tmp_B_ind = B_ind
+                new_B_ind = M.B_ind
             else:
-                tmp_B_ind2 = np.where(np.abs(sol)>1e-6)
-                tmp_B_ind2 = list(tmp_B_ind2[0])
-                tmp_B_indb = tools.ind2bin(tmp_B_ind2)
-                if (len(tmp_B_ind2)==num_basic) and not tmp_B_indb in used_indices:
-                    tmp_B_ind = tmp_B_ind2
+                tmp_B_ind = np.where(np.abs(sol)>1e-6)
+                tmp_B_ind = list(tmp_B_ind[0])
+                tmp_B_indb = tools.ind2bin(tmp_B_ind)
+                if (len(tmp_B_ind)==num_basic) and not tmp_B_indb in used_indices:
+                    new_B_ind = tmp_B_ind
 
-            if tmp_B_ind != -1:
-                print("LINPROG")
+            if new_B_ind != -1:
+                print(f"LINPROG, {new_B_ind}")
                 used_indices.append(B_indb)
-                B_indb = tools.ind2bin(tmp_B_ind)
+                B_indb = tools.ind2bin(new_B_ind)
                 M.update(B_indb)
 
                 solution_vec.append(M.Binvb)
-                eff_ind.append(B_ind.copy())
+                eff_ind.append(M.B_ind.copy())
             t[1] += time.time() - tt
         
         tt = time.time()
@@ -226,12 +228,12 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
                     bases_explore.popleft()
                     continue
                 except IndexError: # No more bases left to explore
-                    print(bases_explore)
                     explore=False
                     print("Explore false")
                     break
-
-            M.update(B_indb)
+        
+        M.update(B_indb)
+        #print(f"Updating basis to {M.B_ind}")
         t[4] += time.time()-tt
 
     solutions = np.zeros((len(eff_ind),num_variables))
