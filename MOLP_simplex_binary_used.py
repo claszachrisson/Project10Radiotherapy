@@ -2,7 +2,6 @@ import numpy as np
 # import jax
 from scipy.optimize import linprog
 import time
-from collections import deque
 
 #from tools import LU, tools.ind2bin, tools.bin2ind, tools.Matrices
 import tools
