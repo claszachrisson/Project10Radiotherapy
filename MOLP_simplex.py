@@ -251,10 +251,10 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             else:
                 tmp_basic_ind = np.where(np.abs(sol)>1e-6)
                 tmp_basic_ind = list(tmp_basic_ind[0])
-
+                
             # print("LINPROG",tmp_basic_ind)
 
-            if len(tmp_basic_ind)==len(basic_ind) and not any(np.array_equal(tmp_basic_ind, used) for used in used_indicies):
+            if len(tmp_basic_ind)==len(basic_ind) and not any(np.array_equal(tmp_basic_ind, used) for used in used_indicies) and not np.any(sol<-1e-6):
                 print("LINPROG")
                 basic_ind = sorted(tmp_basic_ind)
                 non_basic_ind = [x for x in range(num_non_basic+num_basic) if x not in basic_ind]
