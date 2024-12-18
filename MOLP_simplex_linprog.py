@@ -142,6 +142,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
     #print(format(B_indb,f'0{num_variables}b'))
 
     #Create a list saving for saving the results
+    first_sol = True
     used_indices = deque(maxlen=1000)
     bases_explore = deque()
     eff_ind = []
@@ -215,7 +216,8 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             t[1] += time.time() - tt
         
         tt = time.time()
-        if eff:
+        if eff or first_sol:
+            first_sol = False
             bases = find_possible_eff_sols(M)
             if(bases):
                 bases_explore.append(bases)
