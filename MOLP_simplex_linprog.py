@@ -172,6 +172,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             print("CHECK EFF")
             solution_vec.append(M.Binvb)
             eff_ind.append(M.B_ind.copy())
+            np.savez('result.npz', list_data=eff_ind, array_data=solution_vec)
         else:
             tt = time.time()
             x0 = np.zeros(A.shape[1])
@@ -200,18 +201,24 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
 
             if new_B_ind != -1:
                 print(f"LINPROG, {new_B_ind}")
+                eff = True
                 used_indices.append(B_indb)
                 B_indb = tools.ind2bin(new_B_ind)
                 M.update(B_indb)
 
                 solution_vec.append(M.Binvb)
                 eff_ind.append(M.B_ind.copy())
+                # print(M.B_ind)
+                np.savez('result.npz', list_data=eff_ind, array_data=solution_vec)
+            else:
+                eff = False
             t[1] += time.time() - tt
         
         tt = time.time()
-        bases = find_possible_eff_sols(M)
-        if(bases):
-            bases_explore.append(bases)
+        if eff:
+            bases = find_possible_eff_sols(M)
+            if(bases):
+                bases_explore.append(bases)
         t[3] += time.time() - tt
         tt = time.time()
 
