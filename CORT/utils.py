@@ -19,7 +19,7 @@ dataset = 'CORT'
 def get_config(case):
     if case == 'Prostate':
         # specify the data path
-        data_path = f'{config.CORT_path}/Data/Prostate'
+        data_path = f'{config.CORT_path}/Prostate'
 
         # gantry levels to consider
         # np.arange(0, 359, 360/5)
