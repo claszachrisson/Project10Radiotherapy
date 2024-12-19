@@ -25,29 +25,39 @@ class LU2:
         if(B.shape[0] != B.shape[1]):
             raise ValueError("Matrix not square.")
         self.size = B.shape[0]
-        self.P, self.L, self.U = linalg.lu(B)
-        self.P2 = np.eye(self.size)
-        self.E = self.P2
+        self.P1, self.L, self.U = linalg.lu(B)
+        self.PT = np.eye(self.size)
+        self.E = np.eye(self.size)
+        self.Z = np.eye(self.size)
     
     def solve(self,b):
-        y = linalg.solve_triangular(self.L,self.P.T@b,lower=True)
-        x = linalg.solve_triangular(self.U,self.E@self.P2@y)
-        return self.P2.T@x
+        y = linalg.solve_triangular(self.L,self.P1.T@b,lower=True)
+        x = linalg.solve_triangular(self.U,self.Z@y)
+        return self.PT@x
     
     def update(self,pos,insert):
-        ind = np.concatenate((np.arange(pos), np.arange(pos+1,self.size),[pos]))
-        self.P2 = self.P2[ind]
-        L_Bn = self.U.copy()
-        L_Bn[:,pos] = linalg.solve_triangular(self.L,self.P.T@insert,lower=True)
-        L_Bn = self.P2@L_Bn@self.P2.T
-        spike = L_Bn[-1,:].copy()
+        permuted_pos = np.where(self.PT[pos,:] == 1)[0][0]
+        print(pos, permuted_pos)
+        P = np.eye(self.size)
+        ind = np.concatenate((np.arange(permuted_pos), np.arange(permuted_pos+1,self.size),[permuted_pos]))
+        P = P[ind]
+        Linv_X = self.U.copy()
+        Linv_X[:,permuted_pos] = self.Z@linalg.solve_triangular(self.L,self.P1.T@insert,lower=True)
+        # print(f"Inserted Linv_X: \n{np.round(Linv_X,3)}")
+        # print(f"Permutation matrix: \n{np.round(P,3)}")
+        self.PT = self.PT@P.T
+        Linv_X = P@Linv_X@P.T
+        # print(f"Permuted Linv_X: \n{np.round(Linv_X,3)}")
+        spike = Linv_X[-1].copy()
         ls = len(spike)-1
-        self.E = np.eye(ls+1)
+        E = np.eye(ls+1)
         for i in range(ls):
             if spike[i] != 0:
-                self.E[ls,i] = -spike[i]/L_Bn[i,i]
-                spike += self.E[ls,i]*L_Bn[i,:]
-        self.U = self.E@L_Bn
+                E[ls,i] = -spike[i]/Linv_X[i,i]
+                spike += E[ls,i]*Linv_X[i,:]
+        # print(f"New U: \n{np.round(E@Linv_X,3)}")
+        self.Z = E@P@self.Z
+        self.U = E@Linv_X
         
 class Matrices():
     def __init__(self,A,b,C, B_indb, n_vars):
@@ -70,6 +80,20 @@ class Matrices():
         self.BinvN = self._BinvN()
         self.CN_eff = self._CN_eff()
         self.Binvb = self._Binvb()
+
+    # def update2(self,B_indb, update_pos, insert_pos):
+    #     self.B_indb = B_indb
+    #     self.N_indb = ~B_indb
+    #     self.B_ind = bin2ind(self.B_indb, self.n_vars)
+    #     self.N_ind = bin2ind(self.N_indb, self.n_vars)
+    #     self.B = self.A[:,self.B_ind]
+    #     self.CB = self.C[:,self.B_ind]
+    #     self.N = self.A[:,self.N_ind]
+    #     self.CN = self.C[:,self.N_ind]
+    #     self.B_inv.update(update_pos, self.A[:,insert_pos])
+    #     self.BinvN = self._BinvN()
+    #     self.CN_eff = self._CN_eff()
+    #     self.Binvb = self._Binvb()
     
     # def pivot(self, swap):
     #     self.B_indb = (self.B_indb & ~(1 << swap[0])) | (1 << swap[1])
