@@ -35,6 +35,13 @@ class LU2:
         x = linalg.solve_triangular(self.U,self.Z@y)
         return self.PT@x
     
+    def solveMat(self,N):
+        c = N.shape[1]
+        x = np.zeros([self.size, c])
+        for i in range(c):
+            x[:,i] = self.solve(N[:,i])
+        return x
+    
     def update(self,pos,insert):
         permuted_pos = np.where(self.PT[pos,:] == 1)[0][0]
         print(pos, permuted_pos)
