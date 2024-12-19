@@ -208,7 +208,7 @@ def plot_results(case = 'Liver'):
         ax.invert_yaxis()
         #x1, x2 = 10, 160
         #y1, y2 = 30, 130
-        doseplt = ax.imshow(dose[slice_,:,:].T, cmap='hot', alpha=0.6)
+        doseplt = ax.imshow(dose[slice_,:,:].T, cmap='hot', alpha=1)
         for key in OBJ:
             #con = ax.contour(OBJ[key]['MASK'][slice_,x1:x2,y1:y2].T, levels=[0.5], colors=OBJ[key]['COLOR'])
             con = ax.contour(OBJ[key]['MASK'][slice_,:,:].T, levels=[0.5], colors=OBJ[key]['COLOR'])
@@ -216,7 +216,7 @@ def plot_results(case = 'Liver'):
             if con.levels[0] > 0.0:
                 # add label for legend
                 ax.plot([], [], c=OBJ[key]['COLOR'], label=key)
-        cbar = fig.colorbar(doseplt, ax=ax, label='Radiation Dose')
+        cbar = fig.colorbar(doseplt, ax=ax, label='Radiation Dose (Gy)')
         ax.legend()
         fig.tight_layout()
         fig.savefig(f'plots/{case}/result_{case}_{i}_{slice_}.png', dpi=300, transparent=True, bbox_inches='tight')
