@@ -54,11 +54,7 @@ def get_config(case):
         dim = np.array([184, 184, 90])
         dim = np.roll(dim, 1)
 
-        # eta = 87500.0
-        eta = -1.0
-        steps = 20
-
-        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold, eta, steps
+        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold
 
 
     elif case == 'Liver':
@@ -104,11 +100,7 @@ def get_config(case):
         dim = np.array([217, 217, 168])
         dim = np.roll(dim, 1)
 
-        # eta = 65000.0
-        eta = -1.0
-        steps = 20
-
-        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold, eta, steps
+        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold
 
 
     elif case == 'HeadAndNeck':
@@ -165,12 +157,7 @@ def get_config(case):
         dim = np.array([160, 160, 67])
         dim = np.roll(dim, 1)
 
-        # eta = 11.0
-        # eta = 3.7430655731621476
-        eta = -1.0
-        steps = 20
-
-        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold, eta, steps
+        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold
 
     else:
         raise NotImplementedError
@@ -200,7 +187,7 @@ def get_D_matrices(case='Prostate', save_to_files=False):
     
     cfg = get_config(case)
 
-    data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold, eta, steps = cfg
+    data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold = cfg
 
 
     # load full dose influence matrix
