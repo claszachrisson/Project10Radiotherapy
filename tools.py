@@ -2,6 +2,9 @@ from scipy import linalg
 import numpy as np
 import os, sys
 from collections import deque
+import matplotlib.pyplot as plt
+import CORT.utils as utils
+import CORT.CORT as CORT
 
 class LU:
     def __init__(self, B):
@@ -150,3 +153,106 @@ def ind2bin(ind):
     for i in ind:
         bin = bin | (1 << int(i))
     return bin
+
+
+
+
+def get_dim(case):
+    if case == 'Prostate':
+        dim = np.array([184,184,90])
+    if case == 'Liver':
+        dim = np.array([217,217,168])
+    if case == 'HeadAndNeck':
+        dim = np.array([160,160,67])
+    return dim
+
+
+def get_mask(obj,nVoxels,dim):
+    mask = np.zeros(nVoxels)
+    mask[obj] = 1.0
+    return mask.reshape(dim)
+
+
+
+def plot_results(case = 'Liver'):
+    cfg = utils.get_config(case)
+    data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold = cfg
+
+    if case=='Liver':
+        res = np.load('result_liver_BDY_downsample_10000_OAR_downsample_1000_PTV_downsample_100.npz')
+        slice_ = 42
+    if case=='Prostate':
+        res = np.load('result_prostate_BDY_downsample_3000_OAR_downsample_300_PTV_downsample_30.npz')
+        slice_ = 55
+    #solvec = res['array_data'][:,:389][0]
+    D_full = CORT.load_data(data_path, OBJ, list(zip(gantry_angles, couch_angles)))
+    length_t = D_full.shape[1]
+    solutions = res['array_data'][:,:length_t]
+
+    dim = get_dim(case)
+    dim = np.roll(dim, 1)
+    nVoxels = np.prod(dim)
+    D_patient = D_full[OBJ[BODY_structure]['IDX']]
+
+    for key in OBJ.keys():
+        OBJ[key]['MASK'] = get_mask(OBJ[key]['IDX'], nVoxels,dim)
+    i=0
+    for s in solutions:
+        dose = np.zeros(nVoxels)
+        dose[OBJ[BODY_structure]['IDX']] = D_patient@s
+        dose = dose.reshape(dim)
+
+        #for slice_ in np.arange(0, dim[0], 5):
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.set_aspect('equal')
+        ax.invert_yaxis()
+        #x1, x2 = 10, 160
+        #y1, y2 = 30, 130
+        doseplt = ax.imshow(dose[slice_,:,:].T, cmap='hot', alpha=0.6)
+        for key in OBJ:
+            #con = ax.contour(OBJ[key]['MASK'][slice_,x1:x2,y1:y2].T, levels=[0.5], colors=OBJ[key]['COLOR'])
+            con = ax.contour(OBJ[key]['MASK'][slice_,:,:].T, levels=[0.5], colors=OBJ[key]['COLOR'])
+            # dirty hack to check whether the contour is empty
+            if con.levels[0] > 0.0:
+                # add label for legend
+                ax.plot([], [], c=OBJ[key]['COLOR'], label=key)
+        cbar = fig.colorbar(doseplt, ax=ax, label='Radiation Dose')
+        ax.legend()
+        fig.tight_layout()
+        fig.savefig(f'plots/{case}/result_{case}_{i}_{slice_}.png', dpi=300, transparent=True, bbox_inches='tight')
+        i+=1
+
+def plot_slices(case):
+    """
+    Plots slices with contours of structures only
+    """
+    cfg = utils.get_config(case)
+    data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold = cfg
+
+    CORT.load_data(data_path, OBJ, list(zip(gantry_angles, couch_angles)))
+
+    dim = get_dim(case)
+
+    dim = np.roll(dim, 1)
+    nVoxels = np.prod(dim)
+
+    for key in OBJ.keys():
+        OBJ[key]['MASK'] = get_mask(OBJ[key]['IDX'], nVoxels,dim)
+
+
+    for slice_ in np.arange(0, dim[0], 5):
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.set_aspect('equal')
+        ax.invert_yaxis()
+        #x1, x2 = 10, 160
+        #y1, y2 = 30, 130
+        for key in OBJ:
+            #con = ax.contour(OBJ[key]['MASK'][slice_,x1:x2,y1:y2].T, levels=[0.5], colors=OBJ[key]['COLOR'])
+            con = ax.contour(OBJ[key]['MASK'][slice_,:,:].T, levels=[0.5], colors=OBJ[key]['COLOR'])
+            # dirty hack to check whether the contour is empty
+            if con.levels[0] > 0.0:
+                # add label for legend
+                ax.plot([], [], c=OBJ[key]['COLOR'], label=key)
+        ax.legend()
+        fig.tight_layout()
+        fig.savefig(f'plots/slices/slice_{case}_{slice_}.png', dpi=300, transparent=True, bbox_inches='tight')

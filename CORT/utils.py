@@ -169,17 +169,6 @@ def get_D_matrices(case='Prostate', save_to_files=False):
     case = 'Prostate'
     case = 'Liver'
     case = 'HeadAndNeck'
-
-    loss = 'absolute'
-    loss = 'squared'
-
-    score_method = 'gradnorm'
-    m = 25000
-    repetitions = 1
-    w_BDY_over = 1.0
-    w_OAR_over = 1.0
-    w_PTV_over = 4096.0
-    w_PTV_under = 4096.0
     """
 
     if case not in ['Prostate','Liver','HeadAndNeck']:
