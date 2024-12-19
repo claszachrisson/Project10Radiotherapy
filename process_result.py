@@ -17,8 +17,9 @@ cost = C @ solution_vec.T
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
-ax.scatter(cost[0], cost[1], cost[2], color='r', label='cost point Point')
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
+ax.scatter(cost[0], cost[1], cost[2], color='r', label='cost function values')
+ax.set_xlabel('BDY')
+ax.set_ylabel('OAR')
+ax.set_zlabel('PTV')
 ax.legend()
+plt.show()
