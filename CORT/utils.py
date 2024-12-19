@@ -267,7 +267,7 @@ def prob(case='Prostate', from_files=False, BDY_downsample=1, OAR_downsample=1, 
         n_OAR = D_OAR.shape[0]
         n_PTV = D_PTV.shape[0]
 
-        _, _, _, _, _, PTV_dose, _, BDY_threshold, _, OAR_threshold, _, _ = get_config(case)
+        _, _, _, _, _, PTV_dose, _, BDY_threshold, _, OAR_threshold = get_config(case)
 
         #target_dose_PTV = np.load(case + '_target_doze_PTV.npy')
 
