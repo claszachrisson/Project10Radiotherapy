@@ -89,7 +89,7 @@ def find_possible_eff_sols(M):
     return B
 
 
-def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
+def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = np.inf):
     """
     Solves a multi-objective linear programming problem using the Simplex method.
 
@@ -173,7 +173,13 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             print("CHECK EFF")
             solution_vec.append(M.Binvb)
             eff_ind.append(M.B_ind.copy())
-            np.savez('result.npz', list_data=eff_ind, array_data=solution_vec)
+            first_sol = False
+            if len(eff_ind)==num_sol:
+                solutions = np.zeros((len(eff_ind),num_variables))
+                for i,sol in enumerate(solutions):
+                    sol[eff_ind[i]]=solution_vec[i]
+                np.savez('result.npz', list_data=eff_ind, array_data=solutions)
+                return eff_ind, solutions
         else:
             tt = time.time()
             x0 = np.zeros(A.shape[1])
@@ -203,21 +209,27 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
             if new_B_ind != -1:
                 print(f"LINPROG, {new_B_ind}")
                 eff = True
+                first_sol = False
                 used_indices.append(B_indb)
                 B_indb = tools.ind2bin(new_B_ind)
                 M.update(B_indb)
 
                 solution_vec.append(M.Binvb)
                 eff_ind.append(M.B_ind.copy())
+                if len(eff_ind)==num_sol:
+                    solutions = np.zeros((len(eff_ind),num_variables))
+                    for i,sol in enumerate(solutions):
+                        sol[eff_ind[i]]=solution_vec[i]
+                    np.savez('result.npz', list_data=eff_ind, array_data=solutions)
+                    return eff_ind, solutions
                 # print(M.B_ind)
-                np.savez('result.npz', list_data=eff_ind, array_data=solution_vec)
+                # np.savez('result.npz', list_data=eff_ind, array_data=solution_vec)
             else:
                 eff = False
             t[1] += time.time() - tt
         
         tt = time.time()
         if eff or first_sol:
-            first_sol = False
             bases = find_possible_eff_sols(M)
             if(bases):
                 bases_explore.append(bases)
@@ -250,5 +262,5 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = 100):
 
     for i,sol in enumerate(solutions):
         sol[eff_ind[i]]=solution_vec[i]
-
+    np.savez('result.npz', list_data=eff_ind, array_data=solutions)
     return eff_ind, solutions
