@@ -54,11 +54,7 @@ def get_config(case):
         dim = np.array([184, 184, 90])
         dim = np.roll(dim, 1)
 
-        # eta = 87500.0
-        eta = -1.0
-        steps = 20
-
-        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold, eta, steps
+        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold
 
 
     elif case == 'Liver':
@@ -104,11 +100,7 @@ def get_config(case):
         dim = np.array([217, 217, 168])
         dim = np.roll(dim, 1)
 
-        # eta = 65000.0
-        eta = -1.0
-        steps = 20
-
-        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold, eta, steps
+        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold
 
 
     elif case == 'HeadAndNeck':
@@ -165,12 +157,7 @@ def get_config(case):
         dim = np.array([160, 160, 67])
         dim = np.roll(dim, 1)
 
-        # eta = 11.0
-        # eta = 3.7430655731621476
-        eta = -1.0
-        steps = 20
-
-        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold, eta, steps
+        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold
 
     else:
         raise NotImplementedError
@@ -182,17 +169,6 @@ def get_D_matrices(case='Prostate', save_to_files=False):
     case = 'Prostate'
     case = 'Liver'
     case = 'HeadAndNeck'
-
-    loss = 'absolute'
-    loss = 'squared'
-
-    score_method = 'gradnorm'
-    m = 25000
-    repetitions = 1
-    w_BDY_over = 1.0
-    w_OAR_over = 1.0
-    w_PTV_over = 4096.0
-    w_PTV_under = 4096.0
     """
 
     if case not in ['Prostate','Liver','HeadAndNeck']:
@@ -200,7 +176,7 @@ def get_D_matrices(case='Prostate', save_to_files=False):
     
     cfg = get_config(case)
 
-    data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold, eta, steps = cfg
+    data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold = cfg
 
 
     # load full dose influence matrix
@@ -280,7 +256,7 @@ def prob(case='Prostate', from_files=False, BDY_downsample=1, OAR_downsample=1, 
         n_OAR = D_OAR.shape[0]
         n_PTV = D_PTV.shape[0]
 
-        _, _, _, _, _, PTV_dose, _, BDY_threshold, _, OAR_threshold, _, _ = get_config(case)
+        _, _, _, _, _, PTV_dose, _, BDY_threshold, _, OAR_threshold = get_config(case)
 
         #target_dose_PTV = np.load(case + '_target_doze_PTV.npy')
 
