@@ -12,7 +12,7 @@ def load_structure(file):
         print(f'ERROR: file {file} not found')
         return None
 
-def load_data(data_path, OBJ, case):
+def load_data(OBJ, case):
     # angles is a list of lists [[gantry_angle, couch_angle],...]
 
     # load the structure indices
