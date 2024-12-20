@@ -3,174 +3,173 @@ import numpy as np
 import scipy.sparse as sp
 from math import floor
 
-import CORT
+import CORT.CORT as CORT
 
-try:
-    import CORT.config as config
-except ImportError:
-    with open("CORT/config.py", "w") as f:
-        f.write("CORT_path = 'insert_path_to_CORT_directory'\nbinaries_path = 'CORT/binaries/'")
-    import CORT.config as config
+CORT_path = 'CORT/'
+binaries_path = 'CORT/binaries/'
 
 ################################################################################
 
 dataset = 'CORT'
 
+class Config():
+    def __init__(self, case):
+        self.case = case
+        self.data_path = f'{CORT_path}/{case}'
+        self.gantry_angles = []
+        self.couch_angles = []
+        self.OBJ = {}
+        self.PTV_structure = ""
+        self.PTV_dose = 0
+        self.BODY_structure = ""
+        self.BODY_threshold = 0
+        self.OAR_structures = []
+        self.OAR_threshold = 0
+        self.dim = []
+
 def get_config(case):
-    if case == 'Prostate_sample':
-        # specify the data path
-        data_path = f'{config.CORT_path}/Prostate_sample'
+    cfg = Config(case)
+    match case:
+        case 'Prostate':
+            # gantry levels to consider
+            # np.arange(0, 359, 360/5)
+            cfg.gantry_angles = [0, 72, 144, 216, 288]
+            cfg.couch_angles = [0, 0, 0, 0, 0]
 
-        # gantry levels to consider
-        # np.arange(0, 359, 360/5)
-        gantry_angles = [0, 72, 144, 216, 288]
-        couch_angles = [0, 0, 0, 0, 0]
+            # structure to color map
+            cfg.OBJ = {
+                'PTV_68':{'COLOR':'tab:blue'},
+                'PTV_56':{'COLOR':'tab:cyan'},
+                'Rectum':{'COLOR':'tab:green'},
+                'BODY':{'COLOR':'black'},
+                'Bladder':{'COLOR':'tab:orange'},
+                'Penile_bulb':{'COLOR':'tab:red'},
+                'Lt_femoral_head':{'COLOR':'tab:pink'},
+                'Rt_femoral_head':{'COLOR':'tab:purple'},
+                'Lymph_Nodes':{'COLOR':'tab:brown'},
+                'prostate_bed':{'COLOR':'tab:olive'}
+            }
 
-        # structure to color map
-        OBJ = {
-            'PTV_68':{'COLOR':'tab:blue'},
-            'PTV_56':{'COLOR':'tab:cyan'},
-            'Rectum':{'COLOR':'tab:green'},
-            'BODY':{'COLOR':'black'},
-            'Bladder':{'COLOR':'tab:orange'},
-            'Penile_bulb':{'COLOR':'tab:red'},
-            'Lt_femoral_head':{'COLOR':'tab:pink'},
-            'Rt_femoral_head':{'COLOR':'tab:purple'},
-            'Lymph_Nodes':{'COLOR':'tab:brown'},
-            'prostate_bed':{'COLOR':'tab:olive'}
-        }
+            cfg.PTV_structure = 'PTV_68'
+            cfg.PTV_dose = 68.0
 
-        PTV_structure = 'PTV_68'
-        PTV_dose = 68.0
+            cfg.BODY_structure = 'BODY'
+            cfg.BODY_threshold = 5.0
 
-        BODY_structure = 'BODY'
-        BODY_threshold = 5.0
+            cfg.OAR_structures = ['Rectum','Bladder','Penile_bulb',
+                            'Lt_femoral_head','Rt_femoral_head',
+                            'Lymph_Nodes']
+            cfg.OAR_threshold = 5.0
 
-        OAR_structures = ['Rectum','Bladder','Penile_bulb',
-                          'Lt_femoral_head','Rt_femoral_head',
-                          'Lymph_Nodes']
-        OAR_threshold = 5.0
+            dim = np.array([184, 184, 90])
+            cfg.dim = np.roll(dim, 1)
+        case 'Liver':
+            # specify the data path
+            cfg.data_path = f'{CORT_path}/Liver'
 
-        dim = np.array([184, 184, 90])
-        dim = np.roll(dim, 1)
+            # gantry levels to consider
+            cfg.gantry_angles = [32, 90, 148, 212, 270, 328]
+            cfg.couch_angles = [0, 0, 0, 0, 0, 0]
 
-        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold, dim
+            # structure to color map
+            cfg.OBJ = {
+                'CTV':{'COLOR':'tab:olive'},
+                'Celiac':{'COLOR':'tab:olive'},
+                'DoseFalloff':{'COLOR':'tab:olive'},
+                'GTV':{'COLOR':'tab:olive'},
+                'LargeBowel':{'COLOR':'tab:olive'},
+                'SmallBowel':{'COLOR':'tab:olive'},
+                'SMASMV':{'COLOR':'tab:olive'},
+                'duodenum':{'COLOR':'tab:olive'},
+                'entrance':{'COLOR':'tab:olive'},
+                'PTV':{'COLOR':'tab:blue'},
+                'Heart':{'COLOR':'tab:green'},
+                'Skin':{'COLOR':'black'},
+                'Liver':{'COLOR':'tab:orange'},
+                'SpinalCord':{'COLOR':'tab:red'},
+                'KidneyL':{'COLOR':'tab:pink'},
+                'KidneyR':{'COLOR':'tab:purple'},
+                'Stomach':{'COLOR':'tab:brown'}
+            }
 
+            cfg.PTV_structure = 'PTV'
+            cfg.PTV_dose = 56.0 # Seb made that up
 
-    elif case == 'Liver_sample':
-        # specify the data path
-        data_path = f'{config.CORT_path}/Liver_sample'
+            cfg.BODY_structure = 'Skin'
+            cfg.BODY_threshold = 5.0
 
-        # gantry levels to consider
-        gantry_angles = [32, 90, 148, 212, 270, 328]
-        couch_angles = [0, 0, 0, 0, 0, 0]
+            cfg.OAR_structures = ['Heart','Liver','SpinalCord',
+                            #'KidneyL','KidneyR',
+                            'Stomach']
+            cfg.OAR_threshold = 5.0
 
-        # structure to color map
-        OBJ = {
-            'CTV':{'COLOR':'tab:olive'},
-            'Celiac':{'COLOR':'tab:olive'},
-            'DoseFalloff':{'COLOR':'tab:olive'},
-            'GTV':{'COLOR':'tab:olive'},
-            'LargeBowel':{'COLOR':'tab:olive'},
-            'SmallBowel':{'COLOR':'tab:olive'},
-            'SMASMV':{'COLOR':'tab:olive'},
-            'duodenum':{'COLOR':'tab:olive'},
-            'entrance':{'COLOR':'tab:olive'},
-            'PTV':{'COLOR':'tab:blue'},
-            'Heart':{'COLOR':'tab:green'},
-            'Skin':{'COLOR':'black'},
-            'Liver':{'COLOR':'tab:orange'},
-            'SpinalCord':{'COLOR':'tab:red'},
-            'KidneyL':{'COLOR':'tab:pink'},
-            'KidneyR':{'COLOR':'tab:purple'},
-            'Stomach':{'COLOR':'tab:brown'}
-        }
+            dim = np.array([217, 217, 168])
+            cfg.dim = np.roll(dim, 1)
+        case 'HeadAndNeck':
+            # specify the data path
+            cfg.data_path = f'{CORT_path}/HeadAndNeck/'
 
-        PTV_structure = 'PTV'
-        PTV_dose = 56.0 # Seb made that up
+            # gantry levels to consider
+            # np.arange(0, 359, 360/5)
+            # gantry_angles = [0, 72, 144, 216, 288]
+            # np.arange(0, 359, int(360/8)+1)
+            cfg.gantry_angles = [0, 52, 104, 156, 208, 260, 312]
+            cfg.couch_angles = [0, 0, 0, 0, 0, 0, 0]
 
-        BODY_structure = 'Skin'
-        BODY_threshold = 5.0
+            # structure to color map
+            cfg.OBJ = {
+                'CEREBELLUM':{'COLOR':'tab:olive'},
+                'CTV56':{'COLOR':'tab:olive'},
+                'CTV63':{'COLOR':'tab:olive'},
+                'GTV':{'COLOR':'tab:olive'},
+                'LARYNX':{'COLOR':'tab:brown'},
+                'LENS_LT':{'COLOR':'tab:olive'},
+                'LENS_RT':{'COLOR':'tab:olive'},
+                'LIPS':{'COLOR':'tab:cyan'},
+                'OPTIC_NRV_LT':{'COLOR':'tab:olive'},
+                'OPTIC_NRV_RT':{'COLOR':'tab:olive'},
+                'TEMP_LOBE_LT':{'COLOR':'tab:olive'},
+                'TEMP_LOBE_RT':{'COLOR':'tab:olive'},
+                #'TM_JOINT_LT':{'COLOR':'tab:olive'},
+                #'TM_JOINT_RT':{'COLOR':'tab:olive'},
+                'PTV56':{'COLOR':'tab:olive'},
+                'PTV63':{'COLOR':'tab:olive'},
+                'PTV70':{'COLOR':'tab:blue'},
+                'BRAIN_STEM_PRV':{'COLOR':'tab:olive'},
+                'BRAIN_STEM':{'COLOR':'tab:green'},
+                'External':{'COLOR':'black'},
+                'CHIASMA':{'COLOR':'tab:orange'},
+                'SPINAL_CORD':{'COLOR':'tab:red'},
+                'SPINL_CRD_PRV':{'COLOR':'tab:olive'},
+                'PAROTID_LT':{'COLOR':'tab:pink'},
+                'PAROTID_RT':{'COLOR':'tab:purple'}
+            }
 
-        OAR_structures = ['Heart','Liver','SpinalCord',
-                          #'KidneyL','KidneyR',
-                          'Stomach']
-        OAR_threshold = 5.0
+            cfg.PTV_structure = 'PTV70'
+            cfg.PTV_dose = 70.0
 
-        dim = np.array([217, 217, 168])
-        dim = np.roll(dim, 1)
+            cfg.BODY_structure = 'External'
+            cfg.BODY_threshold = 5.0
 
-        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold, dim
+            cfg.OAR_structures = ['BRAIN_STEM','CHIASMA','SPINAL_CORD',
+                            'PAROTID_LT','PAROTID_RT',
+                            'LARYNX', 'LIPS']
+            cfg.OAR_threshold = 5.0
 
-
-    elif case == 'HeadAndNeck':
-        # specify the data path
-        data_path = f'{config.CORT_path}/HeadAndNeck/'
-
-        # gantry levels to consider
-        # np.arange(0, 359, 360/5)
-        # gantry_angles = [0, 72, 144, 216, 288]
-        # np.arange(0, 359, int(360/8)+1)
-        gantry_angles = [0, 52, 104, 156, 208, 260, 312]
-        couch_angles = [0, 0, 0, 0, 0, 0, 0]
-
-        # structure to color map
-        OBJ = {
-            'CEREBELLUM':{'COLOR':'tab:olive'},
-            'CTV56':{'COLOR':'tab:olive'},
-            'CTV63':{'COLOR':'tab:olive'},
-            'GTV':{'COLOR':'tab:olive'},
-            'LARYNX':{'COLOR':'tab:brown'},
-            'LENS_LT':{'COLOR':'tab:olive'},
-            'LENS_RT':{'COLOR':'tab:olive'},
-            'LIPS':{'COLOR':'tab:cyan'},
-            'OPTIC_NRV_LT':{'COLOR':'tab:olive'},
-            'OPTIC_NRV_RT':{'COLOR':'tab:olive'},
-            'TEMP_LOBE_LT':{'COLOR':'tab:olive'},
-            'TEMP_LOBE_RT':{'COLOR':'tab:olive'},
-            #'TM_JOINT_LT':{'COLOR':'tab:olive'},
-            #'TM_JOINT_RT':{'COLOR':'tab:olive'},
-            'PTV56':{'COLOR':'tab:olive'},
-            'PTV63':{'COLOR':'tab:olive'},
-            'PTV70':{'COLOR':'tab:blue'},
-            'BRAIN_STEM_PRV':{'COLOR':'tab:olive'},
-            'BRAIN_STEM':{'COLOR':'tab:green'},
-            'External':{'COLOR':'black'},
-            'CHIASMA':{'COLOR':'tab:orange'},
-            'SPINAL_CORD':{'COLOR':'tab:red'},
-            'SPINL_CRD_PRV':{'COLOR':'tab:olive'},
-            'PAROTID_LT':{'COLOR':'tab:pink'},
-            'PAROTID_RT':{'COLOR':'tab:purple'}
-        }
-
-        PTV_structure = 'PTV70'
-        PTV_dose = 70.0
-
-        BODY_structure = 'External'
-        BODY_threshold = 5.0
-
-        OAR_structures = ['BRAIN_STEM','CHIASMA','SPINAL_CORD',
-                          'PAROTID_LT','PAROTID_RT',
-                          'LARYNX', 'LIPS']
-        OAR_threshold = 5.0
-
-        dim = np.array([160, 160, 67])
-        dim = np.roll(dim, 1)
-
-        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold, dim
-
-    else:
-        raise NotImplementedError
+            dim = np.array([160, 160, 67])
+            cfg.dim = np.roll(dim, 1)
+        case _:
+            raise NotImplementedError
+    CORT.load_indices(cfg, True)
+    return cfg
 
 def save_D_full(case='Prostate'):
     cfg = get_config(case)
 
-    data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold,dim = cfg
-
     # load full dose influence matrix
-    D_full = CORT.load_data(data_path, OBJ, list(zip(gantry_angles, couch_angles)))
+    D_full = CORT.load_D_full(cfg)
 
-    sp.save_npz(config.binaries_path + case + '_D_full.npz', D_full)
+    sp.save_npz(binaries_path + case + '_D_full.npz', D_full)
 
 def get_D_matrices(case='Prostate', save_to_files=False):
 
@@ -236,12 +235,12 @@ def get_D_matrices(case='Prostate', save_to_files=False):
 
     if(save_to_files):
         # Save data in binary form
-        Path(config.binaries_path).mkdir(parents=True, exist_ok=True)
-        sp.save_npz(config.binaries_path + case + '_D_BDY.npz', D_BDY)
-        sp.save_npz(config.binaries_path + case + '_D_OAR.npz', D_OAR)
-        sp.save_npz(config.binaries_path + case + '_D_PTV.npz', D_PTV)
+        Path(binaries_path).mkdir(parents=True, exist_ok=True)
+        sp.save_npz(binaries_path + case + '_D_BDY.npz', D_BDY)
+        sp.save_npz(binaries_path + case + '_D_OAR.npz', D_OAR)
+        sp.save_npz(binaries_path + case + '_D_PTV.npz', D_PTV)
 
-        np.save(config.binaries_path + case + '_target_doze_PTV.npy', target_dose_PTV)
+        np.save(binaries_path + case + '_target_doze_PTV.npy', target_dose_PTV)
     
     return (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BDY_threshold, OAR_threshold, PTV_dose)
 
@@ -258,9 +257,9 @@ def prob(case='Prostate', from_files=False, BDY_downsample=1, OAR_downsample=1, 
         D_PTV = sp.bsr_array(D_PTV)
     else:
         # load data in binary form
-        D_BDY = sp.load_npz(config.binaries_path + case + '_D_BDY.npz')
-        D_OAR = sp.load_npz(config.binaries_path + case + '_D_OAR.npz')
-        D_PTV = sp.load_npz(config.binaries_path + case + '_D_PTV.npz')
+        D_BDY = sp.load_npz(binaries_path + case + '_D_BDY.npz')
+        D_OAR = sp.load_npz(binaries_path + case + '_D_OAR.npz')
+        D_PTV = sp.load_npz(binaries_path + case + '_D_PTV.npz')
         n_BDY = D_BDY.shape[0]
         n_OAR = D_OAR.shape[0]
         n_PTV = D_PTV.shape[0]
