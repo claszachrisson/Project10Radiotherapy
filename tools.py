@@ -32,6 +32,10 @@ class LU2:
         self.PT = np.eye(self.size)
         self.E = np.eye(self.size)
         self.Z = np.eye(self.size)
+        self.P1_backup, self.L_backup, self.U_backup = linalg.lu(B)
+        self.PT_backup = np.eye(self.size)
+        self.E_backup = np.eye(self.size)
+        self.Z_backup = np.eye(self.size)
     
     def solve(self,b):
         y = linalg.solve_triangular(self.L,self.P1.T@b,lower=True)
@@ -47,7 +51,7 @@ class LU2:
     
     def update(self,pos,insert):
         permuted_pos = np.where(self.PT[pos,:] == 1)[0][0]
-        print(pos, permuted_pos)
+        #print(pos, permuted_pos)
         P = np.eye(self.size)
         ind = np.concatenate((np.arange(permuted_pos), np.arange(permuted_pos+1,self.size),[permuted_pos]))
         P = P[ind]
@@ -68,6 +72,23 @@ class LU2:
         # print(f"New U: \n{np.round(E@Linv_X,3)}")
         self.Z = E@P@self.Z
         self.U = E@Linv_X
+
+    def backup(self):
+        self.P1_backup = self.P1_backup.copy()
+        self.L_backup = self.L.copy()
+        self.U_backup = self.U.copy()
+        self.PT_backup = self.PT.copy()
+        self.E_backup = self.E.copy()
+        self.Z_backup = self.Z.copy()
+
+    def revert2backup(self):
+        self.P1 = self.P1_backup.copy()
+        self.L = self.L_backup.copy()
+        self.U = self.U_backup.copy()
+        self.PT = self.PT_backup.copy()
+        self.E = self.E_backup.copy()
+        self.Z = self.Z_backup.copy()
+
         
 class Matrices():
     def __init__(self,A,b,C, B_indb, n_vars):
@@ -86,24 +107,25 @@ class Matrices():
         self.CB = self.C[:,self.B_ind]
         self.N = self.A[:,self.N_ind]
         self.CN = self.C[:,self.N_ind]
-        self.B_inv = LU(self.B)
+        self.B_inv = LU2(self.B)
         self.BinvN = self._BinvN()
         self.CN_eff = self._CN_eff()
         self.Binvb = self._Binvb()
 
-    # def update2(self,B_indb, update_pos, insert_pos):
-    #     self.B_indb = B_indb
-    #     self.N_indb = ~B_indb
-    #     self.B_ind = bin2ind(self.B_indb, self.n_vars)
-    #     self.N_ind = bin2ind(self.N_indb, self.n_vars)
-    #     self.B = self.A[:,self.B_ind]
-    #     self.CB = self.C[:,self.B_ind]
-    #     self.N = self.A[:,self.N_ind]
-    #     self.CN = self.C[:,self.N_ind]
-    #     self.B_inv.update(update_pos, self.A[:,insert_pos])
-    #     self.BinvN = self._BinvN()
-    #     self.CN_eff = self._CN_eff()
-    #     self.Binvb = self._Binvb()
+    def update2(self,B_indb, pivot):
+        self.B_indb = B_indb
+        self.N_indb = ~B_indb
+        self.B_ind = bin2ind(self.B_indb, self.n_vars)
+        self.N_ind = bin2ind(self.N_indb, self.n_vars)
+        self.B = self.A[:,self.B_ind]
+        self.CB = self.C[:,self.B_ind]
+        self.N = self.A[:,self.N_ind]
+        self.CN = self.C[:,self.N_ind]
+        #print(f'Inserting index {pivot[2]} into index {pivot[0]}, B={self.B_ind}')
+        self.B_inv.update(pivot[0], self.A[:,pivot[2]])
+        self.BinvN = self._BinvN()
+        self.CN_eff = self._CN_eff()
+        self.Binvb = self._Binvb()
     
     # def pivot(self, swap):
     #     self.B_indb = (self.B_indb & ~(1 << swap[0])) | (1 << swap[1])
@@ -132,7 +154,7 @@ class Matrices():
         return self.B_inv.solve(self.b)
 
 class Basis:
-    def __init__(self, B_indb):
+    def __init__(self, B_indb):#, lu_obj):
         self.B_indb = B_indb
         self.pivots = deque()
 
