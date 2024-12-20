@@ -236,6 +236,56 @@ def plot_results(case = 'Liver', results_file=None, prefix="",slice_=50):
         fig.savefig(f'plots/{case}/result_{prefix}{case}_{i}_{slice_}.png', dpi=300, transparent=True, bbox_inches='tight')
         i+=1
 
+def plot_first_result(case = 'Liver', results_file=None, prefix=""):
+    cfg = utils.get_config(case)
+
+    if not results_file:
+        if case=='Liver':
+            res = np.load('result_liver_BDY_downsample_10000_OAR_downsample_1000_PTV_downsample_100.npz')
+            slice_ = 42
+        if case=='Prostate':
+            res = np.load('result_prostate_BDY_downsample_3000_OAR_downsample_300_PTV_downsample_30.npz')
+            slice_ = 55
+    else:
+        res = np.load(results_file)
+
+    #solvec = res['array_data'][:,:389][0]
+    D_full = CORT.load_D_full(case)
+    length_t = D_full.shape[1]
+    solutions = res['array_data'][:,:length_t]
+    if prefix != "":
+        prefix = prefix + "_"
+
+    keys = [cfg.BODY_structure] + cfg.OAR_structures + [cfg.PTV_structure]
+    nVoxels = np.prod(cfg.dim)
+    D_patient = D_full[cfg.OBJ[cfg.BODY_structure]['IDX']]
+
+    for key in keys:
+        cfg.OBJ[key]['MASK'] = get_mask(cfg.OBJ[key]['IDX'], nVoxels,cfg.dim)
+
+    s = solutions[0]
+    dose = np.zeros(nVoxels)
+    dose[cfg.OBJ[cfg.BODY_structure]['IDX']] = D_patient@s
+    dose = dose.reshape(cfg.dim)
+    for slice_ in np.arange(0, cfg.dim[0], 5):
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.set_aspect('equal')
+        ax.invert_yaxis()
+        #x1, x2 = 10, 160
+        #y1, y2 = 30, 130
+        doseplt = ax.imshow(dose[slice_,:,:].T, cmap='hot', alpha=1)
+        for key in keys:
+            #con = ax.contour(OBJ[key]['MASK'][slice_,x1:x2,y1:y2].T, levels=[0.5], colors=OBJ[key]['COLOR'])
+            con = ax.contour(cfg.OBJ[key]['MASK'][slice_,:,:].T, levels=[0.5], colors=cfg.OBJ[key]['COLOR'])
+            # dirty hack to check whether the contour is empty
+            if con.levels[0] > 0.0:
+                # add label for legend
+                ax.plot([], [], c=cfg.OBJ[key]['COLOR'], label=key)
+        cbar = fig.colorbar(doseplt, ax=ax, label='Radiation Dose (Gy)')
+        ax.legend()
+        fig.tight_layout()
+        fig.savefig(f'plots/{case}/all_slices/result_{prefix}{case}_{slice_}.png', dpi=300, transparent=True, bbox_inches='tight')
+
 def plot_slices(case):
     """
     Plots slices with contours of structures only
@@ -270,18 +320,23 @@ def plot_slices(case):
 
 def get_mean_doses(case='Prostate', results_file=None):
     cfg = utils.get_config(case)
-    CORT.load_indices(cfg, False)
     
     #BDY_indices, OAR_indices, PTV_indices, n_BDY, n_OAR, n_PTV = utils.get_diff_indices(cfg)
 
-    D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV = CORT.load_D_XYZ(case, lengths=True)
+    D_BDY, D_OAR, D_PTV = CORT.load_D_XYZ(case)
+    BDY_indices, OAR_indices, PTV_indices, n_BDY, n_OAR, n_PTV = utils.get_diff_indices(cfg,True)
+    D_full = CORT.load_D_full(case)
+    D_BDY = D_full[BDY_indices]
+    D_OAR = D_full[OAR_indices]
+    D_PTV = D_full[PTV_indices]
 
     if not results_file:
         if case=='Liver':
             res = np.load('result_liver_BDY_downsample_10000_OAR_downsample_1000_PTV_downsample_100.npz')
         if case=='Prostate':
             res = np.load('result_prostate_BDY_downsample_3000_OAR_downsample_300_PTV_downsample_30.npz')
-    
+    else:
+        res = np.load(results_file)
     length_t = D_BDY.shape[1]
     solutions = res['array_data'][:,:length_t]
     num_solutions = len(solutions)
@@ -289,15 +344,15 @@ def get_mean_doses(case='Prostate', results_file=None):
     mean_doses = {'BDY':[0]*num_solutions,
                   'OAR':[0]*num_solutions,
                   'PTV':[0]*num_solutions}
-    
+    print(np.mean(D_full@solutions[0]))
     for i in range(num_solutions):
-        mean_doses['BDY'][i] = np.sum(D_BDY@solutions[i])
-        mean_doses['OAR'][i] = np.sum(D_OAR@solutions[i])
-        mean_doses['PTV'][i] = np.sum(D_PTV@solutions[i])
+        mean_doses['BDY'][i] = np.mean(D_BDY@solutions[i])
+        mean_doses['OAR'][i] = np.mean(D_OAR@solutions[i])
+        mean_doses['PTV'][i] = np.mean(D_PTV@solutions[i])
     
-    for i in range(num_solutions):
-        mean_doses['BDY'][i] /= n_BDY
-        mean_doses['OAR'][i] /= n_OAR
-        mean_doses['PTV'][i] /= n_PTV
+    # for i in range(num_solutions):
+    #     mean_doses['BDY'][i] /= n_BDY
+    #     mean_doses['OAR'][i] /= n_OAR
+    #     mean_doses['PTV'][i] /= n_PTV
 
     return mean_doses

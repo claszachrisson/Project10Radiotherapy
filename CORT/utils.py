@@ -153,7 +153,7 @@ def get_config(case):
             cfg.dim = np.roll(dim, 1)
         case _:
             raise NotImplementedError
-    CORT.load_indices(cfg, True)
+    CORT.load_indices(cfg)
     return cfg
 
 def save_D_full(case='Prostate'):
