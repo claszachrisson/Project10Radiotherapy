@@ -54,7 +54,7 @@ def get_config(case):
         dim = np.array([184, 184, 90])
         dim = np.roll(dim, 1)
 
-        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold
+        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold, dim
 
 
     elif case == 'Liver_sample':
@@ -100,7 +100,7 @@ def get_config(case):
         dim = np.array([217, 217, 168])
         dim = np.roll(dim, 1)
 
-        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold
+        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold, dim
 
 
     elif case == 'HeadAndNeck':
@@ -157,11 +157,20 @@ def get_config(case):
         dim = np.array([160, 160, 67])
         dim = np.roll(dim, 1)
 
-        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold
+        return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold, dim
 
     else:
         raise NotImplementedError
 
+def save_D_full(case='Prostate'):
+    cfg = get_config(case)
+
+    data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold,dim = cfg
+
+    # load full dose influence matrix
+    D_full = CORT.load_data(data_path, OBJ, list(zip(gantry_angles, couch_angles)))
+
+    sp.save_npz(config.binaries_path + case + '_D_full.npz', D_full)
 
 def get_D_matrices(case='Prostate', save_to_files=False):
 
@@ -176,7 +185,7 @@ def get_D_matrices(case='Prostate', save_to_files=False):
     
     cfg = get_config(case)
 
-    data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold = cfg
+    data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold,dim = cfg
 
 
     # load full dose influence matrix
