@@ -4,10 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 #Give your specifications for your run
-case = 'Liver'
-BDY_downsample = 40000
-OAR_downsample = 1400
-PTV_downsample = 100
+case = 'Prostate_sample'
+BDY_downsample = 30
+OAR_downsample = 15
+PTV_downsample = 10
 plot_cost_function = True
 
 #Process matrices
@@ -34,7 +34,7 @@ if plot_cost_function:
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    ax.scatter(cost[0], cost[1], cost[2], color='r', label='Cost function')
+    ax.scatter(cost[0], cost[1], cost[2], color='r', label='Cost function values')
     ax.set_xlabel('BDY')
     ax.set_ylabel('OAR')
     ax.set_zlabel('PTV')
