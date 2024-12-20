@@ -178,7 +178,6 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = np.inf):
                 solutions = np.zeros((len(eff_ind),num_variables))
                 for i,sol in enumerate(solutions):
                     sol[eff_ind[i]]=solution_vec[i]
-                np.savez('result.npz', list_data=eff_ind, array_data=solutions)
                 return eff_ind, solutions
         else:
             tt = time.time()
@@ -220,7 +219,7 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = np.inf):
                     solutions = np.zeros((len(eff_ind),num_variables))
                     for i,sol in enumerate(solutions):
                         sol[eff_ind[i]]=solution_vec[i]
-                    np.savez('result.npz', list_data=eff_ind, array_data=solutions)
+
                     return eff_ind, solutions
                 # print(M.B_ind)
                 # np.savez('result.npz', list_data=eff_ind, array_data=solution_vec)
@@ -262,5 +261,4 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = np.inf):
 
     for i,sol in enumerate(solutions):
         sol[eff_ind[i]]=solution_vec[i]
-    np.savez('result.npz', list_data=eff_ind, array_data=solutions)
     return eff_ind, solutions
