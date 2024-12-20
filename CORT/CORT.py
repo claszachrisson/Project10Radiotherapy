@@ -12,7 +12,7 @@ def load_structure(file):
         print(f'ERROR: file {file} not found')
         return None
 
-def load_indices(cfg=None):
+def load_indices(cfg):
     # load the structure indices
     for key in cfg.OBJ.keys():
         cfg.OBJ[key]['IDX'] = load_structure(f'CORT/VOILISTS/{cfg.case}/{key}_VOILIST.mat')
