@@ -12,15 +12,10 @@ def load_structure(file):
         print(f'ERROR: file {file} not found')
         return None
 
-def load_data(OBJ, case):
-    # angles is a list of lists [[gantry_angle, couch_angle],...]
-
+def load_indices(OBJ, case):
     # load the structure indices
     for key in OBJ.keys():
-        OBJ[key]['IDX'] = load_structure(f'CORT/VOILISTS/{key}_VOILIST.mat')
+        OBJ[key]['IDX'] = load_structure(f'CORT/VOILISTS/{case}/{key}_VOILIST.mat')
 
-    D_full = sp.load_npz(f'CORT/binaries/{case}_D_full.npz')
-
-    return D_full
-
-
+def load_D_full(case):
+    return sp.load_npz(f'CORT/binaries/{case}_D_full.npz')
