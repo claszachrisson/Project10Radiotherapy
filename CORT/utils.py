@@ -380,8 +380,6 @@ def compute_scores(D, target_dose, weights, eta, steps):
 
     print(f'Running PGD for {steps} steps with a learning rate of eta={eta}')
 
-    t_start = time()
-    time_PGD = []
 
     # initialize x with zeros
     x = np.zeros(D.shape[1])
@@ -408,10 +406,8 @@ def compute_scores(D, target_dose, weights, eta, steps):
         score_residual_hist.append(score_residual)
         score_gradnorm = sp.sparse.linalg.norm(grad_per_point, ord=2, axis=1)
         score_gradnorm_hist.append(score_gradnorm)
-        # track the time
-        time_PGD.append(time())
 
-    time_PGD = np.array(time_PGD) - t_start
+    time_PGD = 0
 
     return x_hist, loss_hist, score_residual_hist, score_gradnorm_hist, time_PGD
 
