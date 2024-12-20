@@ -337,3 +337,246 @@ def get_diff_indices(cfg, lengths = False):
     if lengths:
         return BDY_indices, OAR_indices, PTV_indices, len(BDY_indices), len(OAR_indices), len(PTV_indices)
     return BDY_indices, OAR_indices, PTV_indices
+
+
+def compute_subset(D, weights, m, seed, scores):
+
+    assert D.shape[0] == weights.shape[0]
+    assert D.shape[0] == scores.shape[0]
+
+    n = D.shape[0]
+
+    # sampling probabilities
+    q = scores / scores.sum()
+
+    np.random.seed(seed)
+    sample_idx = np.random.choice(n, size=m, p=q)
+
+    """
+    The re-weighting is done as follows:
+        new_weight = old_weight / (m*q)
+    """
+    new_weights  = weights / (m*q)
+
+    # we need to return the indices and not the smaller arrays
+    # because we need to split the structures
+    return sample_idx, new_weights
+
+
+
+def compute_scores(D, target_dose, weights, eta, steps):
+
+    if eta == -1.0:
+        print('compute_scores(): No eta given, computing learning rate...')
+        A = sp.sparse.diags(np.sqrt(weights)) * D
+        _,s,_ = sp.sparse.linalg.svds(2*A.T@A)
+        # L = s.max()
+        eta = 2/(s.min() + s.max())
+
+    x_hist = []
+    loss_hist = []
+    score_residual_hist = []
+    score_gradnorm_hist = []
+
+    print(f'Running PGD for {steps} steps with a learning rate of eta={eta}')
+
+    t_start = time()
+    time_PGD = []
+
+    # initialize x with zeros
+    x = np.zeros(D.shape[1])
+    for i in range(steps):
+        # compute the current doses
+        dose = D@x
+        # compute the residual
+        res = dose - target_dose
+        # use square loss and the weighing
+        loss = np.sum(np.multiply(weights, res**2))
+        loss_hist.append(loss)
+        print(f'loss={loss} max_dose={dose.max()}')
+        # compute the gradient per data point
+        grad_per_point = D.multiply(2*np.multiply(weights, res).reshape(-1, 1))
+        grad = np.array(grad_per_point.sum(0)).reshape(-1)
+        # gradient descent step
+        x = x - eta*grad
+        # projection to x>=0
+        x[x<0] = 0
+        # remember x
+        x_hist.append(x)
+        # compute the scores
+        score_residual = np.abs(res)
+        score_residual_hist.append(score_residual)
+        score_gradnorm = sp.sparse.linalg.norm(grad_per_point, ord=2, axis=1)
+        score_gradnorm_hist.append(score_gradnorm)
+        # track the time
+        time_PGD.append(time())
+
+    time_PGD = np.array(time_PGD) - t_start
+
+    return x_hist, loss_hist, score_residual_hist, score_gradnorm_hist, time_PGD
+
+def importance_sample_D_XYZ(case='Prostate', loss='squared', score_method='gradnorm', m=25000, repetitions=1, w_BDY_over=1.0, w_OAR_over=1.0, w_PTV_over=4096.0, w_PTV_under=4096.0):
+
+    """
+    case = 'Prostate'
+    case = 'Liver'
+    case = 'HeadAndNeck'
+
+    loss = 'absolute'
+    loss = 'squared'
+
+    score_method = 'gradnorm'
+    m = 25000
+    repetitions = 1
+    w_BDY_over = 1.0
+    w_OAR_over = 1.0
+    w_PTV_over = 4096.0
+    w_PTV_under = 4096.0
+    """
+
+    if loss not in ['absolute','squared']:
+        exit(f'ERROR: loss is {loss} but it should be either absolute, or squared')
+
+    if case not in ['Prostate','Liver','HeadAndNeck']:
+        exit(f'ERROR: case is {case} but it should be either Prostate, Liver, or HeadAndNeck')
+
+    if score_method not in ['full', 'uniform', 'gradnorm', 'residual']:
+        # full is a dummy and is not used, m=0 indicates full
+        exit(f'ERROR: score_method is {score_method} but it should be either uniform, gradnorm, or residual')
+
+    m = int(m)
+    repetitions = int(repetitions)
+    w_BDY_over = float(w_BDY_over)
+    w_OAR_over = float(w_OAR_over)
+    w_PTV_over = float(w_PTV_over)
+    w_PTV_under = float(w_PTV_under)
+
+    cfg = get_config(case)
+
+    # load full dose influence matrix
+    D_full = CORT.load_D_full()
+    CORT.load_indices(cfg)
+
+    BDY_indices, OAR_indices, PTV_indices, n_BDY, n_OAR, n_PTV = get_diff_indices(cfg, True)
+
+    # specify the target dose
+    # initialize the target dose to zero
+    target_dose = np.zeros(D_full.shape[0])
+    # set the PTV dose
+    target_dose[cfg.OBJ[cfg.PTV_structure]['IDX']] = cfg.PTV_dose
+    # set the OAR target dose to a threshold to prevent penalizing small violations
+    target_dose[OAR_indices] = cfg.OAR_threshold
+    # set the BDY target dose to a threshold to prevent penalizing small violations
+    target_dose[BDY_indices] = cfg.BDY_threshold
+
+
+    # set D and overwrite target_dose to only consider BODY, OAR, and PTV voxels,
+    # i.e., skip all other voxels outside the actual BODY
+    D = sp.sparse.vstack((D_full[BDY_indices],
+                          D_full[OAR_indices],
+                          D_full[PTV_indices]))
+    target_dose = np.hstack((target_dose[BDY_indices],
+                             target_dose[OAR_indices],
+                             target_dose[PTV_indices]))
+
+
+    D_BDY = D[:n_BDY]
+    D_OAR = D[n_BDY:(n_BDY+n_OAR)]
+    D_PTV = D[(n_BDY+n_OAR):]
+    target_dose_PTV = target_dose[(n_BDY+n_OAR):]
+
+
+    def identity(z):
+        return z
+
+    modifier = identity
+    if loss == 'squared':
+        modifier = np.square
+
+
+    # create a new OBJ object to use for the DVH plots
+    # OBJ_DVH = {}
+    # # inlude the PTV
+    # OBJ_DVH[PTV_structure] = dict(OBJ[PTV_structure])
+    # for structure in OAR_structures+[BODY_structure]:
+    #     # include the relevant structures
+    #     OBJ_DVH[structure] = dict(OBJ[structure])
+    #     # subtract PTV voxels
+    #     OBJ_DVH[structure]['IDX'] = np.setdiff1d(OBJ[structure]['IDX'], OBJ[PTV_structure]['IDX'])
+
+################################################################################
+
+    #
+    # Compute Scores
+    #
+
+    # set the weights for the probing/surrogate function
+    weights = np.zeros(D.shape[0])
+    weights[:n_BDY] =              1.0/n_BDY
+    weights[n_BDY:(n_BDY+n_OAR)] = 1.0/n_OAR
+    weights[(n_BDY+n_OAR):] =      1.0/n_PTV
+
+    # run projected gradient descent
+    eta = -1.0
+    steps = 20
+    res = compute_scores(D, target_dose, weights, eta, steps)
+
+    x_hist, loss_hist, score_residual_hist, score_gradnorm_hist, time_PGD = res
+
+
+    for r in range(repetitions):
+        # set the weights
+        weights = np.zeros(D.shape[0])
+        weights[:n_BDY] =              1.0/(n_BDY*modifier(cfg.BDY_threshold))
+        weights[n_BDY:(n_BDY+n_OAR)] = 1.0/(n_OAR*modifier(cfg.OAR_threshold))
+        weights[(n_BDY+n_OAR):] =      1.0/(n_PTV*modifier(cfg.PTV_dose))
+
+        # set the scores
+        # default is uniform
+        scores = None
+        if score_method == 'uniform':
+            scores = np.ones(D.shape[0])
+        elif score_method == 'gradnorm':
+            scores = score_gradnorm_hist[-1]
+        elif score_method == 'residual':
+            scores = score_residual_hist[-1]
+
+        # get the indices and new weights
+        # use r as seed
+        sample_idx, new_weights = compute_subset(D, weights, m, r, scores)
+
+        print(f'm={m} sampled {len(sample_idx)} points ({len(sample_idx)/m*100}%) of which {len(np.unique(sample_idx))} aka {len(np.unique(sample_idx))/len(sample_idx)*100}% are unique')
+        sample_idx, sample_idx_counts = np.unique(sample_idx, return_counts=True)
+        new_weights[sample_idx] = np.multiply(sample_idx_counts, new_weights[sample_idx])
+        print(f'\t m={m} sampled {len(sample_idx)} points ({len(sample_idx)/m*100}%) of which {len(np.unique(sample_idx))} aka {len(np.unique(sample_idx))/len(sample_idx)*100}% are unique')
+
+        sample_idx_BDY = sample_idx[sample_idx < n_BDY]
+        sample_idx_OAR = sample_idx[np.logical_and(sample_idx >= n_BDY, sample_idx < (n_BDY+n_OAR))]
+        sample_idx_PTV = sample_idx[sample_idx >= (n_BDY+n_OAR)]
+
+        sample_n_BDY = len(sample_idx_BDY)
+        sample_n_OAR = len(sample_idx_OAR)
+        sample_n_PTV = len(sample_idx_PTV)
+
+        if sample_n_BDY < 5:
+            print(f'WARNING: only {sample_n_BDY} BODY voxels have been chosen, increase m which is currently m={m}')
+            print('SKIP run')
+            continue
+
+        if sample_n_OAR < 5:
+            print(f'WARNING: only {sample_n_OAR} OAR voxels have been chosen, increase m which is currently m={m}')
+            print('SKIP run')
+            continue
+
+        if sample_n_PTV < 5:
+            print(f'WARNING: only {sample_n_PTV} PTV voxels have been chosen, increase m which is currently m={m}')
+            print('SKIP run')
+            continue
+
+        sample_D_BDY = D[sample_idx_BDY]
+        sample_D_OAR = D[sample_idx_OAR]
+        sample_D_PTV = D[sample_idx_PTV]
+
+        sp.sparse.save_npz(f'sample_{m}_D_BDY.npz', sample_D_BDY)
+        sp.sparse.save_npz(f'sample_{m}_D_OAR.npz', sample_D_OAR)
+        sp.sparse.save_npz(f'sample_{m}_D_PTV.npz', sample_D_PTV)
