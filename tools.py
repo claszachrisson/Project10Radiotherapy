@@ -198,20 +198,26 @@ def get_mask(obj,nVoxels,dim):
 
 
 
-def plot_results(case = 'Liver'):
+def plot_results(case = 'Liver', results_file=None, prefix="",slice_=50):
     cfg = utils.get_config(case)
     data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold = cfg
 
-    if case=='Liver':
-        res = np.load('result_liver_BDY_downsample_10000_OAR_downsample_1000_PTV_downsample_100.npz')
-        slice_ = 42
-    if case=='Prostate':
-        res = np.load('result_prostate_BDY_downsample_3000_OAR_downsample_300_PTV_downsample_30.npz')
-        slice_ = 55
+    if not results_file:
+        if case=='Liver':
+            res = np.load('result_liver_BDY_downsample_10000_OAR_downsample_1000_PTV_downsample_100.npz')
+            slice_ = 42
+        if case=='Prostate':
+            res = np.load('result_prostate_BDY_downsample_3000_OAR_downsample_300_PTV_downsample_30.npz')
+            slice_ = 55
+    else:
+        res = np.load(results_file)
+
     #solvec = res['array_data'][:,:389][0]
     D_full = CORT.load_data(data_path, OBJ, list(zip(gantry_angles, couch_angles)))
     length_t = D_full.shape[1]
     solutions = res['array_data'][:,:length_t]
+    if prefix != "":
+        prefix = prefix + "_"
 
     keys = [BODY_structure] + OAR_structures + [PTV_structure]
     dim = get_dim(case)
@@ -244,7 +250,7 @@ def plot_results(case = 'Liver'):
         cbar = fig.colorbar(doseplt, ax=ax, label='Radiation Dose (Gy)')
         ax.legend()
         fig.tight_layout()
-        fig.savefig(f'plots/{case}/result_{case}_{i}_{slice_}.png', dpi=300, transparent=True, bbox_inches='tight')
+        fig.savefig(f'plots/{case}/result_{prefix}{case}_{i}_{slice_}.png', dpi=300, transparent=True, bbox_inches='tight')
         i+=1
 
 def plot_slices(case):
