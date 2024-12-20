@@ -270,22 +270,9 @@ def plot_slices(case):
 
 def get_mean_doses(case='Prostate', results_file=None):
     cfg = utils.get_config(case)
-    data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold,dim = cfg
-    CORT.load_indices(case, OBJ, False)
+    CORT.load_indices(cfg, False)
     
-    # set the indices for body (BDY), OAR, and PTV
-    BDY_indices = OBJ[BODY_structure]['IDX']
-    PTV_indices = OBJ[PTV_structure]['IDX']
-    OAR_indices = np.unique(np.hstack([OBJ[OAR_structure]['IDX'] for OAR_structure in OAR_structures]))
-    # fix the indices
-    OAR_indices = np.setdiff1d(OAR_indices, PTV_indices)
-    BDY_indices = np.setdiff1d(BDY_indices, np.union1d(PTV_indices, OAR_indices))
-
-    assert len(np.intersect1d(BDY_indices, PTV_indices)) == 0
-    assert len(np.intersect1d(OAR_indices, PTV_indices)) == 0
-    assert len(np.intersect1d(OAR_indices, BDY_indices)) == 0
-
-
+    #BDY_indices, OAR_indices, PTV_indices, n_BDY, n_OAR, n_PTV = utils.get_diff_indices(cfg)
 
     D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV = CORT.load_D_XYZ(case, lengths=True)
 
