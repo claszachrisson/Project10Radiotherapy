@@ -28,7 +28,8 @@ class LU2:
         if(B.shape[0] != B.shape[1]):
             raise ValueError("Matrix not square.")
         self.size = B.shape[0]
-        self.P1, self.L, self.U = linalg.lu(B)
+        self.P1T, self.L, self.U = linalg.lu(B)
+        self.P1T = self.P1T.T
         self.PT = np.eye(self.size)
         self.E = np.eye(self.size)
         self.Z = np.eye(self.size)
@@ -38,7 +39,7 @@ class LU2:
         self.Z_backup = np.eye(self.size)
     
     def solve(self,b):
-        y = linalg.solve_triangular(self.L,self.P1.T@b,lower=True)
+        y = linalg.solve_triangular(self.L,self.P1T@b,lower=True)
         x = linalg.solve_triangular(self.U,self.Z@y)
         return self.PT@x
     
@@ -55,12 +56,13 @@ class LU2:
         P = np.eye(self.size)
         ind = np.concatenate((np.arange(permuted_pos), np.arange(permuted_pos+1,self.size),[permuted_pos]))
         P = P[ind]
+        PT = P.T
         Linv_X = self.U.copy()
-        Linv_X[:,permuted_pos] = self.Z@linalg.solve_triangular(self.L,self.P1.T@insert,lower=True)
+        Linv_X[:,permuted_pos] = self.Z@linalg.solve_triangular(self.L,self.P1T@insert,lower=True)
         # print(f"Inserted Linv_X: \n{np.round(Linv_X,3)}")
         # print(f"Permutation matrix: \n{np.round(P,3)}")
-        self.PT = self.PT@P.T
-        Linv_X = P@Linv_X@P.T
+        self.PT = self.PT@PT
+        Linv_X = P@Linv_X@PT
         # print(f"Permuted Linv_X: \n{np.round(Linv_X,3)}")
         spike = Linv_X[-1].copy()
         ls = len(spike)-1
@@ -211,12 +213,13 @@ def plot_results(case = 'Liver'):
     length_t = D_full.shape[1]
     solutions = res['array_data'][:,:length_t]
 
+    keys = [BODY_structure] + OAR_structures + [PTV_structure]
     dim = get_dim(case)
     dim = np.roll(dim, 1)
     nVoxels = np.prod(dim)
     D_patient = D_full[OBJ[BODY_structure]['IDX']]
 
-    for key in OBJ.keys():
+    for key in keys:
         OBJ[key]['MASK'] = get_mask(OBJ[key]['IDX'], nVoxels,dim)
     i=0
     for s in solutions:
@@ -231,7 +234,7 @@ def plot_results(case = 'Liver'):
         #x1, x2 = 10, 160
         #y1, y2 = 30, 130
         doseplt = ax.imshow(dose[slice_,:,:].T, cmap='hot', alpha=1)
-        for key in OBJ:
+        for key in keys:
             #con = ax.contour(OBJ[key]['MASK'][slice_,x1:x2,y1:y2].T, levels=[0.5], colors=OBJ[key]['COLOR'])
             con = ax.contour(OBJ[key]['MASK'][slice_,:,:].T, levels=[0.5], colors=OBJ[key]['COLOR'])
             # dirty hack to check whether the contour is empty
@@ -257,8 +260,9 @@ def plot_slices(case):
 
     dim = np.roll(dim, 1)
     nVoxels = np.prod(dim)
+    keys = [BODY_structure] + OAR_structures + [PTV_structure]
 
-    for key in OBJ.keys():
+    for key in keys:
         OBJ[key]['MASK'] = get_mask(OBJ[key]['IDX'], nVoxels,dim)
 
 
@@ -268,7 +272,7 @@ def plot_slices(case):
         ax.invert_yaxis()
         #x1, x2 = 10, 160
         #y1, y2 = 30, 130
-        for key in OBJ:
+        for key in keys:
             #con = ax.contour(OBJ[key]['MASK'][slice_,x1:x2,y1:y2].T, levels=[0.5], colors=OBJ[key]['COLOR'])
             con = ax.contour(OBJ[key]['MASK'][slice_,:,:].T, levels=[0.5], colors=OBJ[key]['COLOR'])
             # dirty hack to check whether the contour is empty
