@@ -17,9 +17,9 @@ except ImportError:
 dataset = 'CORT'
 
 def get_config(case):
-    if case == 'Prostate':
+    if case == 'Prostate_sample':
         # specify the data path
-        data_path = f'{config.CORT_path}/Prostate'
+        data_path = f'{config.CORT_path}/Prostate_sample'
 
         # gantry levels to consider
         # np.arange(0, 359, 360/5)
@@ -57,9 +57,9 @@ def get_config(case):
         return data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BODY_threshold, OAR_structures, OAR_threshold
 
 
-    elif case == 'Liver':
+    elif case == 'Liver_sample':
         # specify the data path
-        data_path = f'{config.CORT_path}/Liver/'
+        data_path = f'{config.CORT_path}/Liver_sample'
 
         # gantry levels to consider
         gantry_angles = [32, 90, 148, 212, 270, 328]
