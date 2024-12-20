@@ -1,8 +1,6 @@
-import scipy as sp
+import scipy.sparse as sp
 
 from os.path import exists
-
-
 
 def load_structure(file):
     if exists(file):
@@ -14,29 +12,14 @@ def load_structure(file):
         print(f'ERROR: file {file} not found')
         return None
 
-
-
-def load_data(data_path, OBJ, angles):
+def load_data(data_path, OBJ, case):
     # angles is a list of lists [[gantry_angle, couch_angle],...]
-
-    if not type(data_path) == str or len(data_path)<1:
-        print(f'ERROR: the variable data_path={data_path} should be properly set')
-        return False
 
     # load the structure indices
     for key in OBJ.keys():
-        OBJ[key]['IDX'] = load_structure(f'{data_path}/{key}_VOILIST.mat')
+        OBJ[key]['IDX'] = load_structure(f'CORT/VOILISTS/{key}_VOILIST.mat')
 
-    # load the dose influence matrix per gantry angle and concatenate them
-    D = []
-    for gantry_angle, couch_angle in angles:
-        file = f'{data_path}/Gantry{gantry_angle}_Couch{couch_angle}_D.mat'
-        if exists(file):
-            beam_D = sp.io.loadmat(file)
-            D.append(beam_D['D'])
-        else:
-            print(f'ERROR: file {file} not found')
-    D_full = sp.sparse.hstack(D)
+    D_full = sp.load_npz(f'CORT/binaries/{case}_D_full.npz')
 
     return D_full
 
