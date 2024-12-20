@@ -12,24 +12,10 @@ def load_structure(file):
         print(f'ERROR: file {file} not found')
         return None
 
-def load_indices(cfg=None, intersect=False):
+def load_indices(cfg=None):
     # load the structure indices
     for key in cfg.OBJ.keys():
         cfg.OBJ[key]['IDX'] = load_structure(f'CORT/VOILISTS/{cfg.case}/{key}_VOILIST.mat')
-    if not intersect:
-        # set the indices for body (BDY), OAR, and PTV
-        BDY_indices = cfg.OBJ[cfg.BODY_structure]['IDX']
-        PTV_indices = cfg.OBJ[cfg.PTV_structure]['IDX']
-        OAR_indices = np.unique(np.hstack([cfg.OBJ[cfg.OAR_structure]['IDX'] for OAR_structure in cfg.OAR_structures]))
-        # fix the indices
-        OAR_indices = np.setdiff1d(OAR_indices, PTV_indices)
-        BDY_indices = np.setdiff1d(BDY_indices, np.union1d(PTV_indices, OAR_indices))
-
-        assert len(np.intersect1d(BDY_indices, PTV_indices)) == 0
-        assert len(np.intersect1d(OAR_indices, PTV_indices)) == 0
-        assert len(np.intersect1d(OAR_indices, BDY_indices)) == 0
-        
-        cfg.OBJ[cfg.BODY_structure]['IDX'] = BDY_indices
 
 def load_D_full(case):
     return sp.sparse.load_npz(f'CORT/binaries/{case}_D_full.npz')

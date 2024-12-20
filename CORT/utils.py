@@ -5,9 +5,6 @@ from math import floor
 
 import CORT.CORT as CORT
 
-CORT_path = 'CORT/'
-binaries_path = 'CORT/binaries/'
-
 ################################################################################
 
 dataset = 'CORT'
@@ -15,7 +12,7 @@ dataset = 'CORT'
 class Config():
     def __init__(self, case):
         self.case = case
-        self.data_path = f'{CORT_path}/{case}'
+        self.data_path = f'CORT/{case}'
         self.gantry_angles = []
         self.couch_angles = []
         self.OBJ = {}
@@ -64,8 +61,6 @@ def get_config(case):
             dim = np.array([184, 184, 90])
             cfg.dim = np.roll(dim, 1)
         case 'Liver':
-            # specify the data path
-            cfg.data_path = f'{CORT_path}/Liver'
 
             # gantry levels to consider
             cfg.gantry_angles = [32, 90, 148, 212, 270, 328]
@@ -106,8 +101,6 @@ def get_config(case):
             dim = np.array([217, 217, 168])
             cfg.dim = np.roll(dim, 1)
         case 'HeadAndNeck':
-            # specify the data path
-            cfg.data_path = f'{CORT_path}/HeadAndNeck/'
 
             # gantry levels to consider
             # np.arange(0, 359, 360/5)
@@ -169,7 +162,7 @@ def save_D_full(case='Prostate'):
     # load full dose influence matrix
     D_full = CORT.load_D_full(cfg)
 
-    sp.save_npz(binaries_path + case + '_D_full.npz', D_full)
+    sp.save_npz('CORT/binaries/' + case + '_D_full.npz', D_full)
 
 def get_D_matrices(case='Prostate', save_to_files=False):
 
@@ -235,40 +228,43 @@ def get_D_matrices(case='Prostate', save_to_files=False):
 
     if(save_to_files):
         # Save data in binary form
-        Path(binaries_path).mkdir(parents=True, exist_ok=True)
-        sp.save_npz(binaries_path + case + '_D_BDY.npz', D_BDY)
-        sp.save_npz(binaries_path + case + '_D_OAR.npz', D_OAR)
-        sp.save_npz(binaries_path + case + '_D_PTV.npz', D_PTV)
+        Path('CORT/binaries/').mkdir(parents=True, exist_ok=True)
+        sp.save_npz('CORT/binaries/' + case + '_D_BDY.npz', D_BDY)
+        sp.save_npz('CORT/binaries/' + case + '_D_OAR.npz', D_OAR)
+        sp.save_npz('CORT/binaries/' + case + '_D_PTV.npz', D_PTV)
 
-        np.save(binaries_path + case + '_target_doze_PTV.npy', target_dose_PTV)
+        np.save('CORT/binaries/' + case + '_target_doze_PTV.npy', target_dose_PTV)
     
     return (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BDY_threshold, OAR_threshold, PTV_dose)
 
-def prob(case='Prostate', from_files=False, BDY_downsample=1, OAR_downsample=1, PTV_downsample=1):
+def prob(case='Prostate', BDY_downsample=1, OAR_downsample=1, PTV_downsample=1):
 
     # x = (t ybdy+ ybdy- yoar+ yoar- yptv+ yptv-).T
 
     # Relevant indices are picked out from D_full, hstack'd for each couch/gantry angle pair
     # Meaning shape[1] of D_XXX is sum of beamlets for each angle pair
-    if(not from_files):
-        (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BDY_threshold, OAR_threshold, PTV_dose) = get_D_matrices(case, False)
-        D_BDY = sp.bsr_array(D_BDY)
-        D_OAR = sp.bsr_array(D_OAR)
-        D_PTV = sp.bsr_array(D_PTV)
-    else:
-        # load data in binary form
-        D_BDY = sp.load_npz(binaries_path + case + '_D_BDY.npz')
-        D_OAR = sp.load_npz(binaries_path + case + '_D_OAR.npz')
-        D_PTV = sp.load_npz(binaries_path + case + '_D_PTV.npz')
-        n_BDY = D_BDY.shape[0]
-        n_OAR = D_OAR.shape[0]
-        n_PTV = D_PTV.shape[0]
+    # if(not from_files):
+    #     (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BDY_threshold, OAR_threshold, PTV_dose) = get_D_matrices(case, False)
+    #     D_BDY = sp.bsr_array(D_BDY)
+    #     D_OAR = sp.bsr_array(D_OAR)
+    #     D_PTV = sp.bsr_array(D_PTV)
+    # else:
+    #     # load data in binary form
+    #     D_BDY = sp.load_npz('CORT/binaries/' + case + '_D_BDY.npz')
+    #     D_OAR = sp.load_npz('CORT/binaries/' + case + '_D_OAR.npz')
+    #     D_PTV = sp.load_npz('CORT/binaries/' + case + '_D_PTV.npz')
+    #     n_BDY = D_BDY.shape[0]
+    #     n_OAR = D_OAR.shape[0]
+    #     n_PTV = D_PTV.shape[0]
 
-        _, _, _, _, _, PTV_dose, _, BDY_threshold, _, OAR_threshold = get_config(case)
+    #     _, _, _, _, _, PTV_dose, _, BDY_threshold, _, OAR_threshold = get_config(case)
 
-        #target_dose_PTV = np.load(case + '_target_doze_PTV.npy')
+    #     #target_dose_PTV = np.load(case + '_target_doze_PTV.npy')
 
+    cfg = get_config(case)
+    CORT.load_indices(cfg)
 
+    D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV = CORT.load_D_XYZ(case, True)
 
     len_t = D_BDY.shape[1]
     sub_n_BDY = floor(n_BDY / BDY_downsample)
@@ -299,9 +295,9 @@ def prob(case='Prostate', from_files=False, BDY_downsample=1, OAR_downsample=1, 
     A = np.hstack([A_DIM, -A_BDY, A_BDY, -A_OAR, A_OAR, -A_PTV, A_PTV])
     
     print("A matrix done. Constructing B vector...")
-    b = np.vstack([np.full((sub_n_BDY, 1), BDY_threshold), 
-                   np.full((sub_n_OAR,1), OAR_threshold), 
-                   np.full((sub_n_PTV,1), PTV_dose)]).flatten()
+    b = np.vstack([np.full((sub_n_BDY, 1), cfg.BODY_threshold), 
+                   np.full((sub_n_OAR,1), cfg.OAR_threshold), 
+                   np.full((sub_n_PTV,1), cfg.PTV_dose)]).flatten()
 
     print("b vector done. Constructing C matrix...")
     Ct = np.zeros((3,len_t))
@@ -325,3 +321,19 @@ def prob(case='Prostate', from_files=False, BDY_downsample=1, OAR_downsample=1, 
     print(f"Number of basic variables: {len(b)}")
     print(f"Number of non-basic variables: {len(C[0,:])-len(b)}")
     return A,b,C,i
+
+def get_diff_indices(cfg, lengths = False):
+    # set the indices for body (BDY), OAR, and PTV
+    BDY_indices = cfg.OBJ[cfg.BODY_structure]['IDX']
+    PTV_indices = cfg.OBJ[cfg.PTV_structure]['IDX']
+    OAR_indices = np.unique(np.hstack([cfg.OBJ[OAR_structure]['IDX'] for OAR_structure in cfg.OAR_structures]))
+    # fix the indices
+    OAR_indices = np.setdiff1d(OAR_indices, PTV_indices)
+    BDY_indices = np.setdiff1d(BDY_indices, np.union1d(PTV_indices, OAR_indices))
+
+    assert len(np.intersect1d(BDY_indices, PTV_indices)) == 0
+    assert len(np.intersect1d(OAR_indices, PTV_indices)) == 0
+    assert len(np.intersect1d(OAR_indices, BDY_indices)) == 0
+    if lengths:
+        return BDY_indices, OAR_indices, PTV_indices, len(BDY_indices), len(OAR_indices), len(PTV_indices)
+    return BDY_indices, OAR_indices, PTV_indices
