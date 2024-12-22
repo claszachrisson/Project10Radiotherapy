@@ -151,12 +151,12 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = np.inf):
     def save_solutions(v):
         solution_vec.append(v.Binvb)
         eff_ind.append(v.B_ind.copy())
-        sol = np.zeros((1,num_variables))
+        sol = np.zeros(v.AbC.n_vars)
         sol[v.B_ind]=v.Binvb
         solutions.append(sol)
-        #np.savez(f'{results_path}/result_{run_datetime}.npz', 
-        #         list_data=eff_ind, 
-        #         array_data=solutions)
+        np.savez(f'{results_path}/result_{run_datetime}.npz', 
+                 list_data=eff_ind, 
+                 array_data=solutions)
         if len(eff_ind)==num_sol:
             return -1
         return 1
