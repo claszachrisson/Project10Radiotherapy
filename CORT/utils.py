@@ -12,7 +12,8 @@ dataset = 'CORT'
 class Config():
     def __init__(self, case):
         self.case = case
-        self.data_path = f'CORT/{case}'
+        self.data_path = f'CORT'
+        self.filenames = ""
         self.gantry_angles = []
         self.couch_angles = []
         self.OBJ = {}
@@ -23,8 +24,9 @@ class Config():
         self.OAR_structures = []
         self.OAR_threshold = 0
         self.dim = []
+        self.n_vars = 0
 
-def get_config(case):
+def get_config(case,filenames=None):
     cfg = Config(case)
     match case:
         case 'Prostate':
@@ -58,8 +60,8 @@ def get_config(case):
                             'Lymph_Nodes']
             cfg.OAR_threshold = 5.0
 
-            dim = np.array([184, 184, 90])
-            cfg.dim = np.roll(dim, 1)
+            cfg.dim = np.array([184, 184, 90])
+            cfg.n_vars = 721
         case 'Liver':
 
             # gantry levels to consider
@@ -98,8 +100,8 @@ def get_config(case):
                             'Stomach']
             cfg.OAR_threshold = 5.0
 
-            dim = np.array([217, 217, 168])
-            cfg.dim = np.roll(dim, 1)
+            cfg.dim = np.array([217, 217, 168])
+            cfg.n_vars = 389
         case 'HeadAndNeck':
 
             # gantry levels to consider
@@ -149,11 +151,19 @@ def get_config(case):
                             'LARYNX', 'LIPS']
             cfg.OAR_threshold = 5.0
 
-            dim = np.array([160, 160, 67])
-            cfg.dim = np.roll(dim, 1)
+            cfg.dim = np.array([160, 160, 67])
+            #cfg.n_vars = -1
         case _:
             raise NotImplementedError
+    cfg.dim = np.roll(cfg.dim, 1)
+    cfg.n_voxels = np.prod(cfg.dim)
     CORT.load_indices(cfg)
+
+    if filenames:
+        cfg.filenames = filenames
+    else:
+        cfg.filenames = cfg.case
+
     return cfg
 
 def save_D_full(case='Prostate'):
@@ -162,9 +172,9 @@ def save_D_full(case='Prostate'):
     # load full dose influence matrix
     D_full = CORT.load_D_full(cfg)
 
-    sp.save_npz('CORT/binaries/' + case + '_D_full.npz', D_full)
+    sp.save_npz(f'{cfg.data_path}/binaries/{cfg.filenames}_D_full.npz', D_full)
 
-def get_D_matrices(case='Prostate', save_to_files=False):
+def get_D_matrices(case='Prostate', save_to_files=False): # Old
 
     """
     case = 'Prostate'
@@ -237,6 +247,22 @@ def get_D_matrices(case='Prostate', save_to_files=False):
     
     return (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BDY_threshold, OAR_threshold, PTV_dose)
 
+def get_diff_indices(cfg, lengths = False):
+    # set the indices for body (BDY), OAR, and PTV
+    BDY_indices = cfg.OBJ[cfg.BODY_structure]['IDX']
+    PTV_indices = cfg.OBJ[cfg.PTV_structure]['IDX']
+    OAR_indices = np.unique(np.hstack([cfg.OBJ[OAR_structure]['IDX'] for OAR_structure in cfg.OAR_structures]))
+    # fix the indices
+    OAR_indices = np.setdiff1d(OAR_indices, PTV_indices)
+    BDY_indices = np.setdiff1d(BDY_indices, np.union1d(PTV_indices, OAR_indices))
+
+    assert len(np.intersect1d(BDY_indices, PTV_indices)) == 0
+    assert len(np.intersect1d(OAR_indices, PTV_indices)) == 0
+    assert len(np.intersect1d(OAR_indices, BDY_indices)) == 0
+    if lengths:
+        return BDY_indices, OAR_indices, PTV_indices, len(BDY_indices), len(OAR_indices), len(PTV_indices)
+    return BDY_indices, OAR_indices, PTV_indices
+
 def prob(case='Prostate', BDY_downsample=1, OAR_downsample=1, PTV_downsample=1):
 
     # x = (t ybdy+ ybdy- yoar+ yoar- yptv+ yptv-).T
@@ -264,7 +290,12 @@ def prob(case='Prostate', BDY_downsample=1, OAR_downsample=1, PTV_downsample=1):
     cfg = get_config(case)
     CORT.load_indices(cfg)
 
-    D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV = CORT.load_D_XYZ(case, True)
+    #D_BDY, D_OAR, D_PTV = CORT.load_D_XYZ(cfg)
+    D_full = CORT.load_D_full(cfg)
+    BDY_indices, OAR_indices, PTV_indices, n_BDY, n_OAR, n_PTV = get_diff_indices(cfg, lengths=True)
+    D_BDY = D_full[BDY_indices]
+    D_OAR = D_full[OAR_indices]
+    D_PTV = D_full[PTV_indices]
 
     len_t = D_BDY.shape[1]
     sub_n_BDY = floor(n_BDY / BDY_downsample)
@@ -321,22 +352,6 @@ def prob(case='Prostate', BDY_downsample=1, OAR_downsample=1, PTV_downsample=1):
     print(f"Number of basic variables: {len(b)}")
     print(f"Number of non-basic variables: {len(C[0,:])-len(b)}")
     return A,b,C,i
-
-def get_diff_indices(cfg, lengths = False):
-    # set the indices for body (BDY), OAR, and PTV
-    BDY_indices = cfg.OBJ[cfg.BODY_structure]['IDX']
-    PTV_indices = cfg.OBJ[cfg.PTV_structure]['IDX']
-    OAR_indices = np.unique(np.hstack([cfg.OBJ[OAR_structure]['IDX'] for OAR_structure in cfg.OAR_structures]))
-    # fix the indices
-    OAR_indices = np.setdiff1d(OAR_indices, PTV_indices)
-    BDY_indices = np.setdiff1d(BDY_indices, np.union1d(PTV_indices, OAR_indices))
-
-    assert len(np.intersect1d(BDY_indices, PTV_indices)) == 0
-    assert len(np.intersect1d(OAR_indices, PTV_indices)) == 0
-    assert len(np.intersect1d(OAR_indices, BDY_indices)) == 0
-    if lengths:
-        return BDY_indices, OAR_indices, PTV_indices, len(BDY_indices), len(OAR_indices), len(PTV_indices)
-    return BDY_indices, OAR_indices, PTV_indices
 
 
 def compute_subset(D, weights, m, seed, scores):
@@ -476,10 +491,10 @@ def importance_sample_D_XYZ(case='Prostate', loss='squared', score_method='gradn
                              target_dose[PTV_indices]))
 
 
-    D_BDY = D[:n_BDY]
-    D_OAR = D[n_BDY:(n_BDY+n_OAR)]
-    D_PTV = D[(n_BDY+n_OAR):]
-    target_dose_PTV = target_dose[(n_BDY+n_OAR):]
+    # D_BDY = D[:n_BDY]
+    # D_OAR = D[n_BDY:(n_BDY+n_OAR)]
+    # D_PTV = D[(n_BDY+n_OAR):]
+    # target_dose_PTV = target_dose[(n_BDY+n_OAR):]
 
 
     def identity(z):
@@ -513,7 +528,7 @@ def importance_sample_D_XYZ(case='Prostate', loss='squared', score_method='gradn
     weights[(n_BDY+n_OAR):] =      1.0/n_PTV
 
     # run projected gradient descent
-    eta = -1.0
+    eta = -1.0 # standard from Seb's config, may be set differently elsewhere
     steps = 20
     res = compute_scores(D, target_dose, weights, eta, steps)
 
@@ -573,6 +588,6 @@ def importance_sample_D_XYZ(case='Prostate', loss='squared', score_method='gradn
         sample_D_OAR = D[sample_idx_OAR]
         sample_D_PTV = D[sample_idx_PTV]
 
-        sp.sparse.save_npz(f'sample_{m}_D_BDY.npz', sample_D_BDY)
-        sp.sparse.save_npz(f'sample_{m}_D_OAR.npz', sample_D_OAR)
-        sp.sparse.save_npz(f'sample_{m}_D_PTV.npz', sample_D_PTV)
+        sp.sparse.save_npz(f'CORT/binaries/{case}_sample_{m}_D_BDY.npz', sample_D_BDY)
+        sp.sparse.save_npz(f'CORT/binaries/{case}_sample_{m}_D_OAR.npz', sample_D_OAR)
+        sp.sparse.save_npz(f'CORT/binaries/{case}_sample_{m}_D_PTV.npz', sample_D_PTV)

@@ -1,5 +1,6 @@
 from scipy import linalg
 import scipy.sparse as sp
+from abc import ABC
 import numpy as np
 import os, sys
 from collections import deque
@@ -23,22 +24,7 @@ class LU:
         else:
             return linalg.lu_solve((self.LU,self.piv),b)
     
-class LU2:
-    def __init__(self, B):
-        B = np.array(B)
-        if(B.shape[0] != B.shape[1]):
-            raise ValueError("Matrix not square.")
-        self.size = B.shape[0]
-        self.P1T, self.L, self.U = linalg.lu(B)
-        self.P1T = self.P1T.T
-        self.PT = np.eye(self.size)
-        self.E = np.eye(self.size)
-        self.Z = np.eye(self.size)
-        self.P1_backup, self.L_backup, self.U_backup = linalg.lu(B)
-        self.PT_backup = np.eye(self.size)
-        self.E_backup = np.eye(self.size)
-        self.Z_backup = np.eye(self.size)
-    
+class LU2(ABC):
     def solve(self,b):
         y = linalg.solve_triangular(self.L,self.P1T@b,lower=True)
         x = linalg.solve_triangular(self.U,self.Z@y)
@@ -75,23 +61,49 @@ class LU2:
         # print(f"New U: \n{np.round(E@Linv_X,3)}")
         self.Z = E@P@self.Z
         self.U = E@Linv_X
+    
+    def get_update(self,pos, insert):
+        permuted_pos = np.where(self.PT[pos,:] == 1)[0][0]
+        P = np.eye(self.size)
+        ind = np.concatenate((np.arange(permuted_pos), np.arange(permuted_pos+1,self.size),[permuted_pos]))
+        P = P[ind]
+        PT = P.T
+        Linv_X = self.U.copy()
+        Linv_X[:,permuted_pos] = self.Z@linalg.solve_triangular(self.L,self.P1T@insert,lower=True)
+        Linv_X = P@Linv_X@PT
+        spike = Linv_X[-1].copy()
+        ls = len(spike)-1
+        E = np.eye(ls+1)
+        for i in range(ls):
+            if spike[i] != 0:
+                E[ls,i] = -spike[i]/Linv_X[i,i]
+                spike += E[ls,i]*Linv_X[i,:]
+        # print(f"New U: \n{np.round(E@Linv_X,3)}")
+        Z = E@P@self.Z
+        U = E@Linv_X
+        return PT, E, Z, U
 
-    def backup(self):
-        self.P1_backup = self.P1_backup.copy()
-        self.L_backup = self.L.copy()
-        self.U_backup = self.U.copy()
-        self.PT_backup = self.PT.copy()
-        self.E_backup = self.E.copy()
-        self.Z_backup = self.Z.copy()
+class LU_from_B(LU2):
+    def __init__(self, B):
+        B = np.array(B)
+        if(B.shape[0] != B.shape[1]):
+            raise ValueError("Matrix not square.")
+        self.size = B.shape[0]
+        self.P1T, self.L, self.U = linalg.lu(B)
+        self.P1T = self.P1T.T
+        self.PT = np.eye(self.size)
+        self.E = np.eye(self.size)
+        self.Z = np.eye(self.size)
 
-    def revert2backup(self):
-        self.P1 = self.P1_backup.copy()
-        self.L = self.L_backup.copy()
-        self.U = self.U_backup.copy()
-        self.PT = self.PT_backup.copy()
-        self.E = self.E_backup.copy()
-        self.Z = self.Z_backup.copy()
-
+class LU_from_update(LU2):
+    def __init__(self, ref, U, PT, Z, E):
+        self.size = ref.size
+        self.P1T = ref.P1T
+        self.L = ref.L
+        self.U = U
+        self.PT = PT
+        self.Z = Z
+        self.E = E
         
 class Matrices():
     def __init__(self,A,b,C, B_indb, n_vars):
@@ -157,9 +169,71 @@ class Matrices():
         return self.B_inv.solve(self.b)
 
 class Basis:
-    def __init__(self, B_indb):#, lu_obj):
+    def __init__(self, B_indb):
         self.B_indb = B_indb
         self.pivots = deque()
+
+class MOLPP:
+    def __init__(self,A,b,C, n_vars, n_basic):
+        self.A = A
+        self.C = C
+        self.b = b
+        self.n_vars = n_vars
+        self.n_basic = n_basic
+
+class Vertex():
+    def __init__(self):
+        pass
+    
+    def new(self, B_indb, AbC):
+        self.AbC = AbC
+        self.B_indb = B_indb
+        self.B_ind = bin2ind(self.B_indb, self.AbC.n_vars)
+        self.N_ind = bin2ind(~B_indb, self.AbC.n_vars)
+        B = self.AbC.A[:,self.B_ind]
+        self.N = self.AbC.A[:,self.N_ind]
+        self.CB = self.AbC.C[:,self.B_ind]
+        self.CN = self.AbC.C[:,self.N_ind]
+        self.B_inv = LU_from_B(B)
+        self.BinvN = self._BinvN(self.N)
+        self.CN_eff = self._CN_eff()
+        self.Binvb = self._Binvb()
+
+    def pivot(self, parent, piv, B_indb):
+        #self.parent = parent
+        self.AbC = parent.AbC
+        self.B_ind = parent.B_ind.copy()
+        self.N_ind = parent.N_ind.copy()
+        B_in = parent.N_ind[piv[1]]
+        B_out = parent.B_ind[piv[0]]
+        self.B_ind[piv[0]] = B_in
+        self.N_ind[piv[1]] = B_out
+        self.B_indb = B_indb
+        #self.B_indb = (parent.B_indb & ~(1 << B_out)) | (1 << B_in)
+        #self.N_indb = ~self.B_indb
+        self.CB = parent.CB.copy()
+        self.CN = parent.CN.copy()
+        self.CB[:,piv[0]] = self.AbC.C[:,B_in]
+        self.CN[:,piv[1]] = self.AbC.C[:,B_out]
+
+        insert = self.AbC.A[:,parent.N_ind[piv[1]]]
+        PT, E, Z, U = parent.B_inv.get_update(piv[0], insert)
+        self.B_inv = LU_from_update(parent.B_inv, U, PT, Z, E)
+
+        self.N = parent.N.copy() #self.A[:,self.N_ind]
+        self.N[:,piv[1]] = self.AbC.A[:,B_out]
+        self.BinvN = self._BinvN(self.N)
+        self.CN_eff = self._CN_eff()
+        self.Binvb = self._Binvb()
+
+    def _BinvN(self, N):
+        return self.B_inv.solve(N)
+    
+    def _CN_eff(self):
+        return self.CN-self.CB@self.BinvN
+    
+    def _Binvb(self):
+        return self.B_inv.solve(self.AbC.b)
 
 class HiddenPrints:
     def __enter__(self):
@@ -179,10 +253,11 @@ def ind2bin(ind):
         bin = bin | (1 << int(i))
     return bin
 
-def get_mask(obj,nVoxels,dim):
-    mask = np.zeros(nVoxels)
-    mask[obj] = 1.0
-    return mask.reshape(dim)
+def set_masks(cfg):
+    for key in cfg.obj.keys():
+        mask = np.zeros(cfg.n_voxels)
+        mask[cfg.OBJ[key]['IDX']] = 1.0
+        cfg.OBJ[key]['MASK'] = mask.reshape(cfg.dim)
 
 def plot_results(case = 'Liver', results_file=None, prefix="",slice_=50):
     cfg = utils.get_config(case)
@@ -197,22 +272,19 @@ def plot_results(case = 'Liver', results_file=None, prefix="",slice_=50):
     else:
         res = np.load(results_file)
 
-    #solvec = res['array_data'][:,:389][0]
     D_full = CORT.load_D_full(case)
-    length_t = D_full.shape[1]
-    solutions = res['array_data'][:,:length_t]
+    solutions = res['array_data'][:,:cfg.n_vars]
     if prefix != "":
         prefix = prefix + "_"
 
     keys = [cfg.BODY_structure] + cfg.OAR_structures + [cfg.PTV_structure]
-    nVoxels = np.prod(cfg.dim)
     D_patient = D_full[cfg.OBJ[cfg.BODY_structure]['IDX']]
 
-    for key in keys:
-        cfg.OBJ[key]['MASK'] = get_mask(cfg.OBJ[key]['IDX'], nVoxels,cfg.dim)
+    set_masks(cfg)
+
     i=0
     for s in solutions:
-        dose = np.zeros(nVoxels)
+        dose = np.zeros(cfg.n_voxels)
         dose[cfg.OBJ[cfg.BODY_structure]['IDX']] = D_patient@s
         dose = dose.reshape(cfg.dim)
 
@@ -241,30 +313,27 @@ def plot_first_result(case = 'Liver', results_file=None, prefix=""):
 
     if not results_file:
         if case=='Liver':
-            res = np.load('result_liver_BDY_downsample_10000_OAR_downsample_1000_PTV_downsample_100.npz')
+            res = np.load('results/result_liver_BDY_downsample_10000_OAR_downsample_1000_PTV_downsample_100.npz')
             slice_ = 42
         if case=='Prostate':
-            res = np.load('result_prostate_BDY_downsample_3000_OAR_downsample_300_PTV_downsample_30.npz')
+            res = np.load('results/result_prostate_BDY_downsample_3000_OAR_downsample_300_PTV_downsample_30.npz')
             slice_ = 55
     else:
         res = np.load(results_file)
 
     #solvec = res['array_data'][:,:389][0]
     D_full = CORT.load_D_full(case)
-    length_t = D_full.shape[1]
-    solutions = res['array_data'][:,:length_t]
+    solutions = res['array_data'][:,:cfg.n_vars]
     if prefix != "":
         prefix = prefix + "_"
 
     keys = [cfg.BODY_structure] + cfg.OAR_structures + [cfg.PTV_structure]
-    nVoxels = np.prod(cfg.dim)
     D_patient = D_full[cfg.OBJ[cfg.BODY_structure]['IDX']]
 
-    for key in keys:
-        cfg.OBJ[key]['MASK'] = get_mask(cfg.OBJ[key]['IDX'], nVoxels,cfg.dim)
+    set_masks(cfg)
 
     s = solutions[0]
-    dose = np.zeros(nVoxels)
+    dose = np.zeros(cfg.n_voxels)
     dose[cfg.OBJ[cfg.BODY_structure]['IDX']] = D_patient@s
     dose = dose.reshape(cfg.dim)
     for slice_ in np.arange(0, cfg.dim[0], 5):
@@ -294,12 +363,9 @@ def plot_slices(case):
 
     CORT.load_indices(cfg)
 
-    nVoxels = np.prod(cfg.dim)
     keys = [cfg.BODY_structure] + cfg.OAR_structures + [cfg.PTV_structure]
 
-    for key in keys:
-        cfg.OBJ[key]['MASK'] = get_mask(cfg.OBJ[key]['IDX'], nVoxels,cfg.dim)
-
+    set_masks(cfg)
 
     for slice_ in np.arange(0, cfg.dim[0], 5):
         fig, ax = plt.subplots(figsize=(6, 6))
