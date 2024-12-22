@@ -15,15 +15,15 @@ def load_structure(file):
 def load_indices(cfg):
     # load the structure indices
     for key in cfg.OBJ.keys():
-        cfg.OBJ[key]['IDX'] = load_structure(f'CORT/VOILISTS/{cfg.case}/{key}_VOILIST.mat')
+        cfg.OBJ[key]['IDX'] = load_structure(f'{cfg.data_path}/VOILISTS/{cfg.case}/{key}_VOILIST.mat')
 
-def load_D_full(case):
-    return sp.sparse.load_npz(f'CORT/binaries/{case}_D_full.npz')
+def load_D_full(cfg):
+    return sp.sparse.load_npz(f'{cfg.data_path}/binaries/{cfg.filenames}_D_full.npz')
 
-def load_D_XYZ(case, lengths=False):
-    D_BDY = sp.sparse.load_npz(f'CORT/binaries/{case}_D_BDY.npz')
-    D_OAR = sp.sparse.load_npz(f'CORT/binaries/{case}_D_OAR.npz')
-    D_PTV = sp.sparse.load_npz(f'CORT/binaries/{case}_D_PTV.npz')
+def load_D_XYZ(cfg, lengths=False):
+    D_BDY = sp.sparse.load_npz(f'{cfg.data_path}/binaries/{cfg.filenames}_D_BDY.npz')
+    D_OAR = sp.sparse.load_npz(f'{cfg.data_path}/binaries/{cfg.filenames}_D_OAR.npz')
+    D_PTV = sp.sparse.load_npz(f'{cfg.data_path}/binaries/{cfg.filenames}_D_PTV.npz')
     if lengths:
         return D_BDY, D_OAR, D_PTV, len(D_BDY), len(D_OAR), len(D_PTV)
     return D_BDY, D_OAR, D_PTV
