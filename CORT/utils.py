@@ -263,7 +263,7 @@ def get_diff_indices(cfg, lengths = False):
         return BDY_indices, OAR_indices, PTV_indices, len(BDY_indices), len(OAR_indices), len(PTV_indices)
     return BDY_indices, OAR_indices, PTV_indices
 
-def prob(case='Prostate', BDY_downsample=1, OAR_downsample=1, PTV_downsample=1):
+def prob(case='Prostate', binary_filenames=None, BDY_downsample=1, OAR_downsample=1, PTV_downsample=1):
 
     # x = (t ybdy+ ybdy- yoar+ yoar- yptv+ yptv-).T
 
@@ -287,7 +287,7 @@ def prob(case='Prostate', BDY_downsample=1, OAR_downsample=1, PTV_downsample=1):
 
     #     #target_dose_PTV = np.load(case + '_target_doze_PTV.npy')
 
-    cfg = get_config(case)
+    cfg = get_config(case, binary_filenames)
     CORT.load_indices(cfg)
 
     #D_BDY, D_OAR, D_PTV = CORT.load_D_XYZ(cfg)

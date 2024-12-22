@@ -1,22 +1,22 @@
-from MOLP_simplex_linprog import simplex
+from MOLP_simplex_linprog_LU2 import simplex
 import CORT.utils as utils
 import numpy as np
 import matplotlib.pyplot as plt
 
 #Give your specifications for your run
-case = 'Prostate_sample'
-BDY_downsample = 30
-OAR_downsample = 15
-PTV_downsample = 10
+case = 'Prostate'
+BDY_downsample = 6000
+OAR_downsample = 200
+PTV_downsample = 50
 plot_cost_function = True
 
 #Process matrices
-A,b,C, i = utils.prob(case, True, BDY_downsample=BDY_downsample, OAR_downsample=OAR_downsample, PTV_downsample=PTV_downsample)
+A,b,C,i = utils.prob(case, BDY_downsample=BDY_downsample, OAR_downsample=OAR_downsample, PTV_downsample=PTV_downsample)
 
 #Run MOLP simplex
 indices, result = simplex(A,b,-C,std_form=True, Initial_basic=i, num_sol = 100)
 
-#Save the result to a file
+#Save the result to a file (already done by simplex() )
 np.savez(f'result_{case}_BDY_downsample_{BDY_downsample}_OAR_downsample_{OAR_downsample}_PTV_downsample_{PTV_downsample}.npz', list_data=indices, array_data=result)
 
 #Check that no solution is strictly better than another one
