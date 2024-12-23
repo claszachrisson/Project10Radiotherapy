@@ -93,7 +93,7 @@ def find_possible_adjacent(M):
     return pivots
 
 
-def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = np.inf):
+def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = np.inf, save_to_file=True):
     """
     Solves a multi-objective linear programming problem using the Simplex method.
 
@@ -154,9 +154,10 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = np.inf):
         sol = np.zeros(v.AbC.n_vars)
         sol[v.B_ind]=v.Binvb
         solutions.append(sol)
-        np.savez(f'{results_path}/result_{run_datetime}.npz', 
-                 list_data=eff_ind, 
-                 array_data=solutions)
+        if save_to_file:
+            np.savez(f'{results_path}/result_{run_datetime}.npz', 
+                    list_data=eff_ind, 
+                    array_data=solutions)
         if len(eff_ind)==num_sol:
             return -1
         return 1
@@ -212,14 +213,16 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = np.inf):
             for p in pivots:
                 B_indb = (vertex.B_indb & ~(1 << vertex.B_ind[p[0]])) | (1 << vertex.N_ind[p[1]])
                 if B_indb not in explored_bases:
+                    tt = time.time()
                     adjacent = tools.Vertex()
                     adjacent.pivot(vertex, p, B_indb)
+                    t[3] += time.time()-tt
                     #print(f"The gods decided {adjacent.B_ind} was not in explored_bases")
                     #s = _simplex(adjacent)
                     if _simplex(adjacent,depth) == -1:
                         return -1
-            print("pivots returned")
             return 0
+        print("not eff")
     
     print("STARTING MOLP SIMPLEX")
     print(f"# Vars: {num_variables}; # Basic: {num_basic}")
@@ -235,10 +238,9 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = np.inf):
     # Begin recursion
     tstart = time.time()
     s = _simplex(v,depth)
-    print("MOLP SIMPLEX STOPPED")
     if num_sol < np.inf and s != -1:
         print("Something went wrong and _simplex() stopped early.")
         return eff_ind, solutions
     
-    print(f"MOLP SIMPLEX STOPPED at {num_sol}")
+    print(f"MOLP SIMPLEX STOPPED at {num_sol} solutions")
     return eff_ind, solutions
