@@ -213,10 +213,16 @@ def simplex(A,b,C, std_form = True, Initial_basic = None, num_sol = np.inf, save
             for p in pivots:
                 B_indb = (vertex.B_indb & ~(1 << vertex.B_ind[p[0]])) | (1 << vertex.N_ind[p[1]])
                 if B_indb not in explored_bases:
-                    tt = time.time()
-                    adjacent = tools.Vertex()
-                    adjacent.pivot(vertex, p, B_indb)
-                    t[3] += time.time()-tt
+                    if depth % 10 == 0:
+                        tt = time.time()
+                        adjacent = tools.Vertex()
+                        adjacent.new(B_indb, vertex.AbC)
+                        t[3] += time.time()-tt
+                    else:
+                        tt = time.time()
+                        adjacent = tools.Vertex()
+                        adjacent.pivot(vertex, p, B_indb)
+                        t[3] += time.time()-tt
                     #print(f"The gods decided {adjacent.B_ind} was not in explored_bases")
                     #s = _simplex(adjacent)
                     if _simplex(adjacent,depth) == -1:
