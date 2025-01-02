@@ -236,7 +236,7 @@ class Vertex():
         self.CN = self.AbC.C[:,self.N_ind]
 
         insert = self.AbC.A[:,parent.N_ind[piv[1]]]
-        PT, E, Z, U = parent.B_inv.get_update(piv[0], insert)
+        PT, Z, U = parent.B_inv.get_update(piv[0], insert)
         self.B_inv = LU_from_update(parent.B_inv, U, PT, Z, E)
         #self.B_inv = LU_from_B(B)
         self.BinvN = self._BinvN(self.N)
