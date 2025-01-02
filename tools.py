@@ -226,6 +226,25 @@ class Vertex():
         self.CN_eff = self._CN_eff()
         self.Binvb = self._Binvb()
 
+    def pivot2(self, parent, piv, B_indb):
+        self.AbC = parent.AbC
+        self.B_indb = B_indb
+        self.B_ind = bin2ind(self.B_indb, self.AbC.n_vars)
+        self.N_ind = bin2ind(~B_indb, self.AbC.n_vars)
+        #B = self.AbC.A[:,self.B_ind]
+        self.N = self.AbC.A[:,self.N_ind]
+        self.CB = self.AbC.C[:,self.B_ind]
+        self.CN = self.AbC.C[:,self.N_ind]
+
+        insert = self.AbC.A[:,parent.N_ind[piv[1]]]
+        PT, E, Z, U = parent.B_inv.get_update(piv[0], insert)
+        self.B_inv = LU_from_update(parent.B_inv, U, PT, Z, E)
+        #self.B_inv = LU_from_B(B)
+        self.BinvN = self._BinvN(self.N)
+        self.CN_eff = self._CN_eff()
+        self.Binvb = self._Binvb()
+
+
     def _BinvN(self, N):
         return self.B_inv.solve(N)
     
