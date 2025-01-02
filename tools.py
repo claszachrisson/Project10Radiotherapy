@@ -52,12 +52,13 @@ class LU2(ABC):
         Linv_X = P@Linv_X@PT
         # print(f"Permuted Linv_X: \n{np.round(Linv_X,3)}")
         spike = Linv_X[-1].copy()
-        ls = len(spike)-1
+        ls = self.size-1
         E = np.eye(ls+1)
-        for i in range(ls):
-            if spike[i] != 0:
-                E[ls,i] = -spike[i]/Linv_X[i,i]
-                spike += E[ls,i]*Linv_X[i,:]
+        spike_nonzero = np.where(spike != 0)[0]
+        for i in spike_nonzero:
+            #if spike[i] != 0:
+            E[ls,i] = -spike[i]/Linv_X[i,i]
+            spike += E[ls,i]*Linv_X[i,:]
         # print(f"New U: \n{np.round(E@Linv_X,3)}")
         self.Z = E@P@self.Z
         self.U = E@Linv_X
@@ -72,16 +73,16 @@ class LU2(ABC):
         Linv_X[:,permuted_pos] = self.Z@linalg.solve_triangular(self.L,self.P1T@insert,lower=True)
         Linv_X = P@Linv_X@PT
         spike = Linv_X[-1].copy()
-        ls = len(spike)-1
+        ls = self.size-1
         E = np.eye(ls+1)
-        for i in range(ls):
+        for i in range(permuted_pos, ls):
             if spike[i] != 0:
                 E[ls,i] = -spike[i]/Linv_X[i,i]
                 spike += E[ls,i]*Linv_X[i,:]
         # print(f"New U: \n{np.round(E@Linv_X,3)}")
         Z = E@P@self.Z
         U = E@Linv_X
-        return PT, E, Z, U
+        return PT, Z, U
 
 class LU_from_B(LU2):
     def __init__(self, B):
@@ -92,18 +93,16 @@ class LU_from_B(LU2):
         self.P1T, self.L, self.U = linalg.lu(B)
         self.P1T = self.P1T.T
         self.PT = np.eye(self.size)
-        self.E = np.eye(self.size)
         self.Z = np.eye(self.size)
 
 class LU_from_update(LU2):
-    def __init__(self, ref, U, PT, Z, E):
+    def __init__(self, ref, U, PT, Z):
         self.size = ref.size
         self.P1T = ref.P1T
         self.L = ref.L
         self.U = U
         self.PT = PT
         self.Z = Z
-        self.E = E
         
 class Matrices():
     def __init__(self,A,b,C, B_indb, n_vars):
@@ -217,8 +216,8 @@ class Vertex():
         self.CN[:,piv[1]] = self.AbC.C[:,B_out]
 
         insert = self.AbC.A[:,parent.N_ind[piv[1]]]
-        PT, E, Z, U = parent.B_inv.get_update(piv[0], insert)
-        self.B_inv = LU_from_update(parent.B_inv, U, PT, Z, E)
+        PT, Z, U = parent.B_inv.get_update(piv[0], insert)
+        self.B_inv = LU_from_update(parent.B_inv, U, PT, Z)
 
         self.N = parent.N.copy() #self.A[:,self.N_ind]
         self.N[:,piv[1]] = self.AbC.A[:,B_out]
