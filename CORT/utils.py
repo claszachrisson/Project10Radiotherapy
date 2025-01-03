@@ -170,9 +170,9 @@ def save_D_full(case, filepath):
     cfg = get_config(case)
 
     # load full dose influence matrix
-    D_full = CORT.get_D_full(cfg)
+    D_full = CORT.get_D_full(cfg, filepath)
 
-    sp.save_npz(f'{filepath}/{cfg.case}_D_full.npz', D_full)
+    sp.save_npz(f'{cfg.data_path}/binaries/{cfg.case}_D_full.npz', D_full)
 
 def get_D_matrices(case='Prostate', save_to_files=False): # Old
 

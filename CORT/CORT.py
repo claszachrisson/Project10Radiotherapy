@@ -20,11 +20,11 @@ def load_indices(cfg):
 def load_D_full(cfg): # from npz
     return sp.sparse.load_npz(f'{cfg.data_path}/binaries/{cfg.case}_D_full.npz')
 
-def get_D_full(cfg): # from .mat
+def get_D_full(cfg, path): # from .mat
     # load the dose influence matrix per gantry angle and concatenate them
     D = []
     for gantry_angle, couch_angle in list(zip(cfg.gantry_angles, cfg.couch_angles)):
-        file = f'{cfg.data_path}/Gantry{gantry_angle}_Couch{couch_angle}_D.mat'
+        file = f'{path}/Gantry{gantry_angle}_Couch{couch_angle}_D.mat'
         if exists(file):
             beam_D = sp.io.loadmat(file)
             D.append(beam_D['D'])
