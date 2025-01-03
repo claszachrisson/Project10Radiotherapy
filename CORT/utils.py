@@ -210,7 +210,7 @@ def get_D_matrices(case='Prostate', save_to_files=False): # Old
         sp.save_npz('CORT/binaries/' + case + '_D_OAR.npz', D_OAR)
         sp.save_npz('CORT/binaries/' + case + '_D_PTV.npz', D_PTV)
     
-    #return (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BDY_threshold, OAR_threshold, PTV_dose)
+    #return (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BODY_threshold, OAR_threshold, PTV_dose)
 
 def get_diff_indices(cfg, lengths = False):
     # set the indices for body (BDY), OAR, and PTV
@@ -235,7 +235,7 @@ def prob(case='Prostate', binary_filenames=None, BDY_downsample=1, OAR_downsampl
     # Relevant indices are picked out from D_full, hstack'd for each couch/gantry angle pair
     # Meaning shape[1] of D_XXX is sum of beamlets for each angle pair
     # if(not from_files):
-    #     (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BDY_threshold, OAR_threshold, PTV_dose) = get_D_matrices(case, False)
+    #     (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BODY_threshold, OAR_threshold, PTV_dose) = get_D_matrices(case, False)
     #     D_BDY = sp.bsr_array(D_BDY)
     #     D_OAR = sp.bsr_array(D_OAR)
     #     D_PTV = sp.bsr_array(D_PTV)
@@ -248,7 +248,7 @@ def prob(case='Prostate', binary_filenames=None, BDY_downsample=1, OAR_downsampl
     #     n_OAR = D_OAR.shape[0]
     #     n_PTV = D_PTV.shape[0]
 
-    #     _, _, _, _, _, PTV_dose, _, BDY_threshold, _, OAR_threshold = get_config(case)
+    #     _, _, _, _, _, PTV_dose, _, BODY_threshold, _, OAR_threshold = get_config(case)
 
     #     #target_dose_PTV = np.load(case + '_target_doze_PTV.npy')
 
@@ -348,8 +348,8 @@ def compute_scores(D, target_dose, weights, eta, steps):
 
     if eta == -1.0:
         print('compute_scores(): No eta given, computing learning rate...')
-        A = sp.sparse.diags(np.sqrt(weights)) * D
-        _,s,_ = sp.sparse.linalg.svds(2*A.T@A)
+        A = sp.diags(np.sqrt(weights)) * D
+        _,s,_ = sp.linalg.svds(2*A.T@A)
         # L = s.max()
         eta = 2/(s.min() + s.max())
 
@@ -384,7 +384,7 @@ def compute_scores(D, target_dose, weights, eta, steps):
         # compute the scores
         score_residual = np.abs(res)
         score_residual_hist.append(score_residual)
-        score_gradnorm = sp.sparse.linalg.norm(grad_per_point, ord=2, axis=1)
+        score_gradnorm = sp.linalg.norm(grad_per_point, ord=2, axis=1)
         score_gradnorm_hist.append(score_gradnorm)
 
     time_PGD = 0
@@ -430,8 +430,8 @@ def importance_sample_D_XYZ(case='Prostate', loss='squared', score_method='gradn
     cfg = get_config(case)
 
     # load full dose influence matrix
-    D_full = CORT.load_D_full()
-    CORT.load_indices(cfg)
+    D_full = CORT.load_D_full(cfg)
+    #CORT.load_indices(cfg)
 
     BDY_indices, OAR_indices, PTV_indices, n_BDY, n_OAR, n_PTV = get_diff_indices(cfg, True)
 
@@ -443,12 +443,12 @@ def importance_sample_D_XYZ(case='Prostate', loss='squared', score_method='gradn
     # set the OAR target dose to a threshold to prevent penalizing small violations
     target_dose[OAR_indices] = cfg.OAR_threshold
     # set the BDY target dose to a threshold to prevent penalizing small violations
-    target_dose[BDY_indices] = cfg.BDY_threshold
+    target_dose[BDY_indices] = cfg.BODY_threshold
 
 
     # set D and overwrite target_dose to only consider BODY, OAR, and PTV voxels,
     # i.e., skip all other voxels outside the actual BODY
-    D = sp.sparse.vstack((D_full[BDY_indices],
+    D = sp.vstack((D_full[BDY_indices],
                           D_full[OAR_indices],
                           D_full[PTV_indices]))
     target_dose = np.hstack((target_dose[BDY_indices],
@@ -495,6 +495,8 @@ def importance_sample_D_XYZ(case='Prostate', loss='squared', score_method='gradn
     # run projected gradient descent
     eta = -1.0 # standard from Seb's config, may be set differently elsewhere
     steps = 20
+    eta = 4.48911747
+    steps = 100
     res = compute_scores(D, target_dose, weights, eta, steps)
 
     x_hist, loss_hist, score_residual_hist, score_gradnorm_hist, time_PGD = res
@@ -503,7 +505,7 @@ def importance_sample_D_XYZ(case='Prostate', loss='squared', score_method='gradn
     for r in range(repetitions):
         # set the weights
         weights = np.zeros(D.shape[0])
-        weights[:n_BDY] =              1.0/(n_BDY*modifier(cfg.BDY_threshold))
+        weights[:n_BDY] =              1.0/(n_BDY*modifier(cfg.BODY_threshold))
         weights[n_BDY:(n_BDY+n_OAR)] = 1.0/(n_OAR*modifier(cfg.OAR_threshold))
         weights[(n_BDY+n_OAR):] =      1.0/(n_PTV*modifier(cfg.PTV_dose))
 
@@ -553,6 +555,6 @@ def importance_sample_D_XYZ(case='Prostate', loss='squared', score_method='gradn
         sample_D_OAR = D[sample_idx_OAR]
         sample_D_PTV = D[sample_idx_PTV]
 
-        sp.sparse.save_npz(f'CORT/binaries/{case}_sample_{m}_D_BDY.npz', sample_D_BDY)
-        sp.sparse.save_npz(f'CORT/binaries/{case}_sample_{m}_D_OAR.npz', sample_D_OAR)
-        sp.sparse.save_npz(f'CORT/binaries/{case}_sample_{m}_D_PTV.npz', sample_D_PTV)
+        sp.save_npz(f'CORT/binaries/{case}_sample_{m}_D_BDY.npz', sample_D_BDY)
+        sp.save_npz(f'CORT/binaries/{case}_sample_{m}_D_OAR.npz', sample_D_OAR)
+        sp.save_npz(f'CORT/binaries/{case}_sample_{m}_D_PTV.npz', sample_D_PTV)
