@@ -18,6 +18,8 @@ def load_indices(cfg):
         cfg.OBJ[key]['IDX'] = load_structure(f'{cfg.data_path}/VOILISTS/{cfg.case}/{key}_VOILIST.mat')
 
 def load_D_full(cfg): # from npz
+    if cfg.case == 'HeadAndNeck':
+        return get_D_full(cfg,f'{cfg.data_path}/mat/{cfg.case}')
     return sp.sparse.load_npz(f'{cfg.data_path}/binaries/{cfg.case}_D_full.npz')
 
 def get_D_full(cfg, path): # from .mat
