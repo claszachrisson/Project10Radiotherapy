@@ -18,7 +18,7 @@ def load_indices(cfg):
         cfg.OBJ[key]['IDX'] = load_structure(f'{cfg.data_path}/VOILISTS/{cfg.case}/{key}_VOILIST.mat')
 
 def load_D_full(cfg):
-    return sp.sparse.load_npz(f'{cfg.data_path}/binaries/{cfg.filenames}_D_full.npz')
+    return sp.sparse.load_npz(f'{cfg.data_path}/binaries/{cfg.case}_D_full.npz')
 
 def load_D_XYZ(cfg, lengths=False):
     D_BDY = sp.sparse.load_npz(f'{cfg.data_path}/binaries/{cfg.filenames}_D_BDY.npz')

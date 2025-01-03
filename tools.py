@@ -272,7 +272,7 @@ def ind2bin(ind):
     return bin
 
 def set_masks(cfg):
-    for key in cfg.obj.keys():
+    for key in cfg.OBJ.keys():
         mask = np.zeros(cfg.n_voxels)
         mask[cfg.OBJ[key]['IDX']] = 1.0
         cfg.OBJ[key]['MASK'] = mask.reshape(cfg.dim)
@@ -340,7 +340,7 @@ def plot_first_result(case = 'Liver', results_file=None, prefix=""):
         res = np.load(results_file)
 
     #solvec = res['array_data'][:,:389][0]
-    D_full = CORT.load_D_full(case)
+    D_full = CORT.load_D_full(cfg)
     solutions = res['array_data'][:,:cfg.n_vars]
     if prefix != "":
         prefix = prefix + "_"
