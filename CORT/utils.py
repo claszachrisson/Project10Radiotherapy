@@ -282,6 +282,7 @@ def prob(case='Prostate', binary_filenames=None, BDY_downsample=1, OAR_downsampl
     threshold = 1e-7
     sub_D_BDY = sub_D_BDY[np.any(sub_D_BDY > threshold, axis=1)]
     sub_n_BDY = sub_D_BDY.shape[0]
+    print(f"Removed rows close to 0 from body. New length: {sub_n_BDY}")
     print("Downsampling done. Constructing A matrix...")
 
     I_BDY = np.eye(sub_n_BDY)
