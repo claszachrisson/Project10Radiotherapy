@@ -406,10 +406,9 @@ def get_mean_doses(case='Prostate', results_file=None):
     cfg = utils.get_config(case)
     
     #BDY_indices, OAR_indices, PTV_indices, n_BDY, n_OAR, n_PTV = utils.get_diff_indices(cfg)
-
-    D_BDY, D_OAR, D_PTV = CORT.load_D_XYZ(case)
+    D_BDY, D_OAR, D_PTV = CORT.load_D_XYZ(cfg)
     BDY_indices, OAR_indices, PTV_indices, n_BDY, n_OAR, n_PTV = utils.get_diff_indices(cfg,True)
-    D_full = CORT.load_D_full(case)
+    D_full = CORT.load_D_full(cfg)
     D_BDY = D_full[BDY_indices]
     D_OAR = D_full[OAR_indices]
     D_PTV = D_full[PTV_indices]
@@ -421,7 +420,8 @@ def get_mean_doses(case='Prostate', results_file=None):
             res = np.load('result_prostate_BDY_downsample_3000_OAR_downsample_300_PTV_downsample_30.npz')
     else:
         res = np.load(results_file)
-    length_t = D_BDY.shape[1]
+
+    length_t = cfg.n_vars
     solutions = res['array_data'][:,:length_t]
     num_solutions = len(solutions)
 
