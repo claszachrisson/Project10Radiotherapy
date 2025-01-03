@@ -209,8 +209,6 @@ def get_D_matrices(case='Prostate', save_to_files=False): # Old
         sp.save_npz('CORT/binaries/' + case + '_D_BDY.npz', D_BDY)
         sp.save_npz('CORT/binaries/' + case + '_D_OAR.npz', D_OAR)
         sp.save_npz('CORT/binaries/' + case + '_D_PTV.npz', D_PTV)
-    
-    #return (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BODY_threshold, OAR_threshold, PTV_dose)
 
 def get_diff_indices(cfg, lengths = False):
     # set the indices for body (BDY), OAR, and PTV
@@ -236,6 +234,7 @@ def prob(case='Prostate', binary_filenames=None, BDY_downsample=1, OAR_downsampl
     # Meaning shape[1] of D_XXX is sum of beamlets for each angle pair
     # if(not from_files):
     #     (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BODY_threshold, OAR_threshold, PTV_dose) = get_D_matrices(case, False)
+
     #     D_BDY = sp.bsr_array(D_BDY)
     #     D_OAR = sp.bsr_array(D_OAR)
     #     D_PTV = sp.bsr_array(D_PTV)
@@ -249,6 +248,7 @@ def prob(case='Prostate', binary_filenames=None, BDY_downsample=1, OAR_downsampl
     #     n_PTV = D_PTV.shape[0]
 
     #     _, _, _, _, _, PTV_dose, _, BODY_threshold, _, OAR_threshold = get_config(case)
+
 
     #     #target_dose_PTV = np.load(case + '_target_doze_PTV.npy')
 
@@ -446,6 +446,7 @@ def importance_sample_D_XYZ(case='Prostate', loss='squared', score_method='gradn
     target_dose[BDY_indices] = cfg.BODY_threshold
 
 
+
     # set D and overwrite target_dose to only consider BODY, OAR, and PTV voxels,
     # i.e., skip all other voxels outside the actual BODY
     D = sp.vstack((D_full[BDY_indices],
@@ -495,8 +496,8 @@ def importance_sample_D_XYZ(case='Prostate', loss='squared', score_method='gradn
     # run projected gradient descent
     eta = -1.0 # standard from Seb's config, may be set differently elsewhere
     steps = 20
-    eta = 4.48911747
-    steps = 100
+    #eta = 4.48911747
+    #steps = 100
     res = compute_scores(D, target_dose, weights, eta, steps)
 
     x_hist, loss_hist, score_residual_hist, score_gradnorm_hist, time_PGD = res
