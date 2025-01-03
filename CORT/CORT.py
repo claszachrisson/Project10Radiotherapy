@@ -17,8 +17,22 @@ def load_indices(cfg):
     for key in cfg.OBJ.keys():
         cfg.OBJ[key]['IDX'] = load_structure(f'{cfg.data_path}/VOILISTS/{cfg.case}/{key}_VOILIST.mat')
 
-def load_D_full(cfg):
+def load_D_full(cfg): # from npz
     return sp.sparse.load_npz(f'{cfg.data_path}/binaries/{cfg.case}_D_full.npz')
+
+def get_D_full(cfg): # from .mat
+    # load the dose influence matrix per gantry angle and concatenate them
+    D = []
+    for gantry_angle, couch_angle in list(zip(cfg.gantry_angles, cfg.couch_angles)):
+        file = f'{cfg.data_path}/Gantry{gantry_angle}_Couch{couch_angle}_D.mat'
+        if exists(file):
+            beam_D = sp.io.loadmat(file)
+            D.append(beam_D['D'])
+        else:
+            print(f'ERROR: file {file} not found')
+    D_full = sp.sparse.hstack(D)
+
+    return D_full
 
 def load_D_XYZ(cfg, lengths=False):
     D_BDY = sp.sparse.load_npz(f'{cfg.data_path}/binaries/{cfg.filenames}_D_BDY.npz')

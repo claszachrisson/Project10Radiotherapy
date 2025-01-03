@@ -166,13 +166,13 @@ def get_config(case,filenames=None):
 
     return cfg
 
-def save_D_full(case='Prostate'):
+def save_D_full(case, filepath):
     cfg = get_config(case)
 
     # load full dose influence matrix
-    D_full = CORT.load_D_full(cfg)
+    D_full = CORT.get_D_full(cfg)
 
-    sp.save_npz(f'{cfg.data_path}/binaries/{cfg.filenames}_D_full.npz', D_full)
+    sp.save_npz(f'{filepath}/{cfg.case}_D_full.npz', D_full)
 
 def get_D_matrices(case='Prostate', save_to_files=False): # Old
 
@@ -187,65 +187,30 @@ def get_D_matrices(case='Prostate', save_to_files=False): # Old
     
     cfg = get_config(case)
 
-    data_path, gantry_angles, couch_angles, OBJ, PTV_structure, PTV_dose, BODY_structure, BDY_threshold, OAR_structures, OAR_threshold,dim = cfg
-
-
     # load full dose influence matrix
-    D_full = CORT.load_data(data_path, OBJ, list(zip(gantry_angles, couch_angles)))
-
-
-    # set the indices for body (BDY), OAR, and PTV
-    BDY_indices = OBJ[BODY_structure]['IDX']
-    PTV_indices = OBJ[PTV_structure]['IDX']
-    OAR_indices = np.unique(np.hstack([OBJ[OAR_structure]['IDX'] for OAR_structure in OAR_structures]))
-    # fix the indices
-    OAR_indices = np.setdiff1d(OAR_indices, PTV_indices)
-    BDY_indices = np.setdiff1d(BDY_indices, np.union1d(PTV_indices, OAR_indices))
-
-    assert len(np.intersect1d(BDY_indices, PTV_indices)) == 0
-    assert len(np.intersect1d(OAR_indices, PTV_indices)) == 0
-    assert len(np.intersect1d(OAR_indices, BDY_indices)) == 0
-
-    n_BDY = len(BDY_indices)
-    n_OAR = len(OAR_indices)
-    n_PTV = len(PTV_indices)
-
-    # specify the target dose
-    # initialize the target dose to zero
-    target_dose = np.zeros(D_full.shape[0])
-    # set the PTV dose
-    target_dose[OBJ[PTV_structure]['IDX']] = PTV_dose
-    # set the OAR target dose to a threshold to prevent penalizing small violations
-    target_dose[OAR_indices] = OAR_threshold
-    # set the BDY target dose to a threshold to prevent penalizing small violations
-    target_dose[BDY_indices] = BDY_threshold
-
+    D_full = CORT.load_D_full(cfg)
+    BDY_indices, OAR_indices, PTV_indices, n_BDY, n_OAR, n_PTV = get_diff_indices(cfg, True)
 
     # set D and overwrite target_dose to only consider BODY, OAR, and PTV voxels,
     # i.e., skip all other voxels outside the actual BODY
     D = sp.vstack((D_full[BDY_indices],
                           D_full[OAR_indices],
                           D_full[PTV_indices]))
-    target_dose = np.hstack((target_dose[BDY_indices],
-                             target_dose[OAR_indices],
-                             target_dose[PTV_indices]))
 
 
     D_BDY = D[:n_BDY]
     D_OAR = D[n_BDY:(n_BDY+n_OAR)]
     D_PTV = D[(n_BDY+n_OAR):]
-    target_dose_PTV = target_dose[(n_BDY+n_OAR):]
 
     if(save_to_files):
         # Save data in binary form
         Path('CORT/binaries/').mkdir(parents=True, exist_ok=True)
+        sp.save_npz('CORT/binaries/' + case + '_D_full.npz', D_full)
         sp.save_npz('CORT/binaries/' + case + '_D_BDY.npz', D_BDY)
         sp.save_npz('CORT/binaries/' + case + '_D_OAR.npz', D_OAR)
         sp.save_npz('CORT/binaries/' + case + '_D_PTV.npz', D_PTV)
-
-        np.save('CORT/binaries/' + case + '_target_doze_PTV.npy', target_dose_PTV)
     
-    return (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BDY_threshold, OAR_threshold, PTV_dose)
+    #return (D_BDY, D_OAR, D_PTV, n_BDY, n_OAR, n_PTV, BDY_threshold, OAR_threshold, PTV_dose)
 
 def get_diff_indices(cfg, lengths = False):
     # set the indices for body (BDY), OAR, and PTV
